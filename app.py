@@ -123,19 +123,34 @@ div[data-testid="stMetric"] {
 
 
 # ==================================================
+# HEADER BANNER (banner.png)
+# ==================================================
+
+BANNER_PATH = "banner.png"
+
+if os.path.exists(BANNER_PATH):
+    st.image(BANNER_PATH, use_container_width=True)
+else:
+    st.markdown(
+        """
+        <div style="background: linear-gradient(90deg, #0b1730, #142b55); padding: 25px; border-radius: 10px; text-align: center; border: 1px solid #233b66; margin-bottom: 20px;">
+            <h1 style="color: #63b3ff; margin: 0; font-size: 30px;">🖼️ PragyanAI - Pixel_Forge-AI</h1>
+            <p style="color: #d4def2; margin: 5px 0 0 0; font-size: 14px;">Studio Image Processing & Enhancement</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ==================================================
 # HELPER FUNCTIONS & IMAGE PIPELINE
 # ==================================================
 
 def load_image(uploaded_file):
-    """
-    Safely load an uploaded image file, automatically fix EXIF rotation,
-    and convert to standard RGB.
-    """
     if uploaded_file is None:
         return None
     try:
         img = Image.open(uploaded_file)
-        # Fix camera/phone orientation using EXIF metadata
         img = ImageOps.exif_transpose(img)
         return img.convert("RGB")
     except Exception as e:
@@ -144,7 +159,6 @@ def load_image(uploaded_file):
 
 
 def image_to_bytes(image, format="PNG"):
-    """Convert a PIL image into downloadable raw bytes."""
     output = io.BytesIO()
     if format.upper() in ["JPG", "JPEG"] and image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
@@ -153,13 +167,11 @@ def image_to_bytes(image, format="PNG"):
 
 
 def set_as_working_image(image, success_msg="Image loaded into workspace pipeline!"):
-    """Store image in session state for cross-tool reuse."""
     st.session_state["working_image"] = image.copy()
     st.success(success_msg)
 
 
 def show_download(image, filename="processed_image.png", allow_pipeline=True):
-    """Display processed image, download button, and optional send-to-pipeline button."""
     st.image(image, caption="Processed Image", use_container_width=True)
     
     col_dl, col_pipe = st.columns([1, 1])
@@ -180,7 +192,6 @@ def show_download(image, filename="processed_image.png", allow_pipeline=True):
 
 
 def get_font(size=30):
-    """Load a true type font with fallback logic for Windows, Linux, and macOS."""
     font_candidates = (
         "C:/Windows/Fonts/seguiemj.ttf",
         "C:/Windows/Fonts/arial.ttf",
@@ -198,12 +209,10 @@ def get_font(size=30):
 
 
 def resize_crop(image, size):
-    """Resize and center-crop image to exact dimensions."""
     return ImageOps.fit(image, size, method=Image.Resampling.LANCZOS)
 
 
 def to_dms(value):
-    """Convert decimal GPS coordinate to degrees/minutes/seconds for EXIF."""
     value = abs(value)
     degrees = int(value)
     minutes_float = (value - degrees) * 60
@@ -221,13 +230,6 @@ def to_dms(value):
 # ==================================================
 
 def draggable_text_editor(image, initial_text, key="draggable_text_component"):
-    """
-    Interactive HTML5 canvas component:
-    - Pure drag & drop text positioning using mouse / touch coordinates.
-    - Font scale adapts automatically to image resolution.
-    - Text styling options: Font size, Color, Background badge toggle, and stroke.
-    - Direct export and client-side download as high-res PNG.
-    """
     if image.mode not in ("RGB", "RGBA"):
         image = image.convert("RGB")
 
@@ -417,34 +419,12 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
 
 
 # ==================================================
-# HEADER BANNER (pragyanai_banner.jpeg)
-# ==================================================
-
-BANNER_PATH = "pragyanai_banner.jpeg"
-
-if os.path.exists(BANNER_PATH):
-    st.image(BANNER_PATH, use_container_width=True)
-else:
-    # Stylized banner display if file is missing in directory
-    st.markdown(
-        """
-        <div style="background: linear-gradient(90deg, #0b1730, #142b55); padding: 25px; border-radius: 10px; text-align: center; border: 1px solid #233b66; margin-bottom: 20px;">
-            <h1 style="color: #63b3ff; margin: 0; font-size: 30px;">🖼️ PragyanAI - Pixel_Forge-AI</h1>
-            <p style="color: #d4def2; margin: 5px 0 0 0; font-size: 14px;">Studio Image Processing & Enhancement</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-# ==================================================
 # SIDEBAR NAVIGATION
 # ==================================================
 
 st.sidebar.title("🖼️ PragyanAI")
 st.sidebar.caption("Pixel_Forge Image Studio")
 
-# Workspace Status Widget
 if st.session_state["working_image"] is not None:
     st.sidebar.success("🟢 Active Image in Workspace")
     if st.sidebar.button("Clear Workspace Image"):
@@ -474,7 +454,6 @@ features = [
 option = st.sidebar.selectbox("Select Feature", features)
 
 
-# Helper to get either upload or pipeline image
 def get_primary_image(uploader_key, label="Upload Image"):
     col_up, col_info = st.columns([2, 1])
     with col_up:
@@ -513,7 +492,7 @@ if option == "Home":
     st.subheader("Explore Tool Suite")
     feature_data = [
         ("🟣 Image Blending", "Blend two images together seamlessly with transparency control."),
-        ("🖼️ Background Change", "AI-powered subject cutout placed cleanly over custom background scenery."),
+        ("🖼️ Background Change", "AI-powered subject cutout placed cleanly in front of scenery."),
         ("⚫ Black & White", "High-contrast grayscale and monochrome conversions."),
         ("✏️ Sketch Effect", "Turn portraits and landscapes into realistic pencil sketches."),
         ("🪪 Passport Photo Frame", "Generate standard multi-copy passport photo print sheets."),
@@ -581,12 +560,12 @@ elif option == "Background Change":
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("1. Subject / Person")
-        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (e.g., Portrait)")
+        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Person/Object)")
         if fg_img:
             st.image(fg_img, caption="Subject", use_container_width=True)
     with col2:
         st.subheader("2. New Background Scenery")
-        bg_file = st.file_uploader("Upload Scenery Photo (e.g., Eiffel Tower, Beach)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
+        bg_file = st.file_uploader("Upload Scenery Photo (Eiffel Tower/Nature)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
         bg_img = load_image(bg_file) if bg_file else None
         if bg_img:
             st.image(bg_img, caption="Scenery", use_container_width=True)
@@ -598,16 +577,16 @@ elif option == "Background Change":
         with col_s:
             scale = st.slider("Subject Scale", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
         with col_x:
-            shift_x = st.slider("Horizontal Position (Left ↔ Right)", min_value=-400, max_value=400, value=0, step=10)
+            shift_x = st.slider("Horizontal Position (Left ↔ Right)", min_value=-500, max_value=500, value=0, step=10)
         with col_y:
-            shift_y = st.slider("Vertical Position (Up ↕ Down)", min_value=-400, max_value=400, value=0, step=10)
+            shift_y = st.slider("Vertical Position (Up ↕ Down)", min_value=-500, max_value=500, value=0, step=10)
 
         if st.button("✨ Apply Background Change", key="exec_bg_change"):
-            with st.spinner("Extracting subject and placing in front of scenery..."):
+            with st.spinner("Extracting subject with rembg and placing in front of scenery..."):
                 try:
                     from rembg import remove
 
-                    # 1. Remove background from foreground subject
+                    # 1. Remove background from foreground person/subject
                     fg_rgba = fg_img.convert("RGBA")
                     fg_cutout = remove(fg_rgba)
                     if not isinstance(fg_cutout, Image.Image):
@@ -615,20 +594,21 @@ elif option == "Background Change":
                     else:
                         fg_cutout = fg_cutout.convert("RGBA")
 
-                    # 2. Canvas dimension based on background or foreground size
-                    target_w, target_h = bg_img.size
-                    bg_canvas = bg_img.convert("RGBA")
+                    # 2. Resize background to match foreground resolution cleanly
+                    target_w, target_h = fg_img.size
+                    bg_canvas = ImageOps.fit(bg_img.convert("RGBA"), (target_w, target_h), method=Image.Resampling.LANCZOS)
 
                     # 3. Apply custom scale to subject
-                    new_w = max(50, int(fg_cutout.width * scale))
-                    new_h = max(50, int(fg_cutout.height * scale))
-                    fg_cutout = fg_cutout.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                    if scale != 1.0:
+                        new_w = max(50, int(fg_cutout.width * scale))
+                        new_h = max(50, int(fg_cutout.height * scale))
+                        fg_cutout = fg_cutout.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
                     # 4. Position: Centered horizontally, bottom-aligned vertically
                     pos_x = (target_w - fg_cutout.width) // 2 + shift_x
                     pos_y = (target_h - fg_cutout.height) + shift_y
 
-                    # 5. Paste cutout ON TOP of background scenery using alpha channel as mask
+                    # 5. Composite: Paste foreground cutout ON TOP of background scenery using alpha channel as mask
                     bg_canvas.paste(fg_cutout, (pos_x, pos_y), mask=fg_cutout)
 
                     result = bg_canvas.convert("RGB")
