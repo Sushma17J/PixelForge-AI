@@ -1,7 +1,7 @@
-streamlit
-pillow
-numpy
+streamlit>=1.40.0,<2.0.0
+Pillow>=10.0.0
+numpy>=1.26.0,<2.0.0
 piexif
 scikit-image
-rembg
-onnxruntime
+rembg>=2.0.60
+onnxruntime>=1.17.0
