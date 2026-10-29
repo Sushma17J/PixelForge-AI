@@ -178,6 +178,64 @@ def to_dms(value):
 
 
 # ==================================================
+# DRAGGABLE TEXT EDITOR
+# ==================================================
+
+def draggable_text_editor(image, initial_text, key="draggable_text"):
+    """Interactive canvas editor: drag text, press Enter to lock, download PNG."""
+    import base64
+    import json
+    import streamlit.components.v1 as components
+
+    if image.mode not in ("RGB", "RGBA"):
+        image = image.convert("RGB")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    image_b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
+    text_json = json.dumps(str(initial_text))
+    image_json = json.dumps(image_b64)
+    html = f"""
+    <div style="font-family:Arial;color:#fff;background:#0b1730;padding:12px;border-radius:12px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+        <label>Font Size <input id="fs" type="range" min="12" max="180" value="48"></label>
+        <label>Text Color <input id="fc" type="color" value="#ffffff"></label>
+        <span id="status">Drag text box to position. Press Enter to keep position.</span>
+      </div>
+      <canvas id="c" style="width:100%;max-width:100%;border:1px solid #53627e;cursor:move"></canvas>
+      <div style="margin-top:10px"><button id="download" style="padding:8px 14px">Download image</button></div>
+    </div>
+    <script>
+    const img=new Image(); img.src='data:image/png;base64,'+{image_json};
+    const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+    const text={text_json}; let x=30,y=70,size=48,color='#ffffff',drag=false,locked=false,dx=0,dy=0;
+    function draw(){{
+      if(!img.complete||!img.naturalWidth)return;
+      canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+      ctx.drawImage(img,0,0);
+      ctx.font=`${{size}}px Arial`;ctx.textBaseline='top';
+      const lines=text.split('\n');let w=0;
+      lines.forEach(l=>w=Math.max(w,ctx.measureText(l).width));
+      const h=lines.length*size*1.25;
+      ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(x-8,y-6,w+16,h+12);
+      ctx.strokeStyle=locked?'#22c55e':'#00d4ff';ctx.lineWidth=Math.max(2,canvas.width/500);ctx.strokeRect(x-8,y-6,w+16,h+12);
+      ctx.fillStyle=color;ctx.font=`${{size}}px Arial`;
+      lines.forEach((l,i)=>ctx.fillText(l,x,y+i*size*1.25));
+    }}
+    img.onload=draw;
+    document.getElementById('fs').addEventListener('input',e=>{{size=+e.target.value;draw();}});
+    document.getElementById('fc').addEventListener('input',e=>{{color=e.target.value;draw();}});
+    function point(e){{const r=canvas.getBoundingClientRect();return {{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}};}}
+    canvas.addEventListener('pointerdown',e=>{{if(locked)return;const p=point(e);drag=true;dx=p.x-x;dy=p.y-y;canvas.setPointerCapture(e.pointerId);}});
+    canvas.addEventListener('pointermove',e=>{{if(!drag||locked)return;const p=point(e);x=Math.max(0,Math.min(canvas.width-20,p.x-dx));y=Math.max(0,Math.min(canvas.height-20,p.y-dy));draw();}});
+    canvas.addEventListener('pointerup',()=>drag=false);
+    document.addEventListener('keydown',e=>{{if(e.key==='Enter'){{locked=true;drag=false;document.getElementById('status').textContent='Position kept. Download your image.';draw();}}}});
+    document.getElementById('download').addEventListener('click',()=>{{const a=document.createElement('a');a.download='image_with_text.png';a.href=canvas.toDataURL('image/png');a.click();}});
+    </script>
+    """
+    components.html(html, height=650, scrolling=True)
+
+
+# ==================================================
 # HEADER AND BANNER
 # ==================================================
 
@@ -207,6 +265,7 @@ features = [
     "Passport Size Photo Frame",
     "Stamp Size Photo",
     "Image Similarity",
+    "Add Text to Image",
     "Add Date and Text",
     "Geo-Tag Image",
     "Multiple Images with Text",
@@ -677,54 +736,27 @@ elif option == "Image Similarity":
 # ADD DATE AND TEXT
 # ==================================================
 
+elif option == "Add Text to Image":
+
+    st.header("✏️ Add Text to Image")
+    file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"], key="add_text_image_upload")
+    text = st.text_area("Enter Text (emojis supported)", placeholder="Hello World! 🎉", key="add_text_image_text")
+    if file:
+        image = load_image(file)
+        st.image(image, caption="Original Image", use_container_width=True)
+        draggable_text_editor(image, text or "Enter text ✨", key="add_text_image_editor")
+
+
 elif option == "Add Date and Text":
 
     st.header("🔤 Add Date and Text")
-
-    file = st.file_uploader(
-        "Upload Image", type=["jpg", "jpeg", "png"], key="text"
-    )
-
-    text = st.text_input(
-        "Enter Text (emojis supported)",
-        placeholder="🎉 Happy Birthday 🎂",
-        key="date_text_content"
-    )
-    date = st.date_input(
-        "Select Date", value=datetime.today().date(), key="date_text_date"
-    )
-    text_color = st.color_picker(
-        "Choose Text Color", value="#FFFFFF", key="date_text_color"
-    )
-    font_size = st.slider("Text size", 12, 120, 40, key="date_text_size")
-
+    file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"], key="text")
+    text = st.text_input("Enter Text (emojis supported)", placeholder="Happy Birthday 🎂")
+    date = st.date_input("Select Date", value=datetime.today().date())
     if file:
-        image = load_image(file).convert("RGBA")
-        img_width, img_height = image.size
-        st.image(image, caption="Preview", use_container_width=True)
-        st.info("Set the text position below. The preview and downloaded image use these coordinates. Press Enter after typing in the text field to finish editing.")
-        col_x, col_y = st.columns(2)
-        with col_x:
-            x_pos = st.slider("Horizontal position", 0, max(0, img_width - 1), min(30, img_width - 1), key="date_text_x")
-        with col_y:
-            y_pos = st.slider("Vertical position", 0, max(0, img_height - 1), min(30, img_height - 1), key="date_text_y")
+        image = load_image(file)
+        draggable_text_editor(image, f"{text}\n{date}", key="date_text_editor")
 
-        overlay_text = f"{text}\n{date}" if text else str(date)
-        if overlay_text.strip():
-            draw = ImageDraw.Draw(image)
-            font = get_font(font_size)
-            draw.multiline_text(
-                (x_pos, y_pos), overlay_text, fill=text_color, font=font,
-                spacing=max(2, font_size // 5),
-                stroke_width=max(1, font_size // 20),
-                stroke_fill="#000000" if text_color.upper() != "#000000" else "#FFFFFF"
-            )
-        show_download(image.convert("RGB"), "image_with_text.png")
-
-
-# ==================================================
-# GEO-TAG IMAGE
-# ==================================================
 
 elif option == "Geo-Tag Image":
 
@@ -909,105 +941,19 @@ elif option == "Geo-Tag Image":
 
 elif option == "Multiple Images with Text":
 
-    st.header("🧩 Multiple Images with Order, Text, Thumbnail and Wallpaper")
-    st.write("Upload photos, arrange their order, add a title/message, and create a collage wallpaper or image sequence.")
-
-    files = st.file_uploader(
-        "Upload Multiple Images", type=["jpg", "jpeg", "png"],
-        accept_multiple_files=True, key="multiple_images_upload"
-    )
-
+    st.header("🧩 Multiple Images with Text")
+    st.write("Upload images, select the order, and add a draggable title/text with emojis.")
+    files = st.file_uploader("Upload Multiple Images", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="multiple_images_upload")
+    title = st.text_input("Text / title (emojis supported)", placeholder="🎉 Memories ❤️", key="multiple_images_title")
     if files:
-        # Preserve the original uploaded image data and allow users to choose ordering.
         names = [f"{i + 1}. {f.name}" for i, f in enumerate(files)]
-        order_names = st.multiselect(
-            "Choose photo order (top-to-bottom; selected order is used)",
-            options=names, default=names, key="multiple_images_order"
-        )
-        title = st.text_input(
-            "Wallpaper title / text (emojis supported)",
-            placeholder="🎉 Happy Birthday 🎂❤️", key="multiple_images_title"
-        )
-        title_color = st.color_picker(
-            "Title text color", value="#FFFFFF", key="multiple_images_text_color"
-        )
-        title_size = st.slider("Title text size", 12, 150, 60, key="multiple_images_title_size")
-        layout = st.selectbox(
-            "Wallpaper layout", ["Collage grid", "Vertical photo sequence", "Horizontal photo sequence"],
-            key="multiple_images_layout"
-        )
-        if order_names:
-            name_to_file = dict(zip(names, files))
-            ordered_files = [name_to_file[n] for n in order_names if n in name_to_file]
-            ordered_images = [load_image(f).convert("RGB") for f in ordered_files]
-
-            # Preview uploaded photos without generated Image 1/Image 2 captions.
-            preview_cols = st.columns(min(4, len(ordered_images)))
-            for idx, im in enumerate(ordered_images):
-                with preview_cols[idx % len(preview_cols)]:
-                    st.image(im, use_container_width=True)
-
-            if layout == "Collage grid":
-                thumb_w, thumb_h = 420, 420
-                cols = min(2, len(ordered_images))
-                rows = (len(ordered_images) + cols - 1) // cols
-                canvas = Image.new("RGB", (cols * thumb_w, rows * thumb_h), "#202840")
-                for idx, im in enumerate(ordered_images):
-                    thumb = ImageOps.fit(im, (thumb_w, thumb_h))
-                    x = (idx % cols) * thumb_w
-                    y = (idx // cols) * thumb_h
-                    canvas.paste(thumb, (x, y))
-            elif layout == "Vertical photo sequence":
-                thumb_w, thumb_h = 900, 600
-                canvas = Image.new("RGB", (thumb_w, len(ordered_images) * thumb_h), "#202840")
-                for idx, im in enumerate(ordered_images):
-                    canvas.paste(ImageOps.fit(im, (thumb_w, thumb_h)), (0, idx * thumb_h))
-            else:
-                thumb_w, thumb_h = 600, 900
-                canvas = Image.new("RGB", (len(ordered_images) * thumb_w, thumb_h), "#202840")
-                for idx, im in enumerate(ordered_images):
-                    canvas.paste(ImageOps.fit(im, (thumb_w, thumb_h)), (idx * thumb_w, 0))
-
-            # Title banner across the finished wallpaper; emoji text supported by Pillow font fallback.
-            if title.strip():
-                draw = ImageDraw.Draw(canvas)
-                pad = max(16, int(canvas.width * 0.02))
-                font = get_font(title_size)
-                bbox = draw.multiline_textbbox((0, 0), title, font=font, spacing=8, stroke_width=2)
-                text_h = bbox[3] - bbox[1]
-                banner_h = text_h + pad * 2
-                draw.rectangle((0, 0, canvas.width, banner_h), fill=(0, 0, 0, 180))
-                draw.multiline_text(
-                    (pad, pad), title, fill=title_color, font=font, spacing=8,
-                    stroke_width=2,
-                    stroke_fill="#000000" if title_color.upper() != "#000000" else "#FFFFFF"
-                )
-
-            st.subheader("Final wallpaper / collage preview")
-            st.image(canvas, use_container_width=True)
-            show_download(canvas, "multiple_images_wallpaper.png")
-
-            # Offer individual resized thumbnails and a ZIP of image sequence.
-            st.subheader("Create thumbnail")
-            thumb_size = st.selectbox("Thumbnail size", ["320 × 320", "640 × 360", "1280 × 720"], key="multiple_thumb_size")
-            tw, th = [int(v.strip()) for v in thumb_size.split("×")]
-            thumbnail = ImageOps.fit(canvas, (tw, th))
-            show_download(thumbnail, "multiple_images_thumbnail.png")
-
-            st.subheader("Download image sequence")
-            if st.button("Prepare image sequence ZIP", key="multiple_sequence_zip"):
-                import zipfile
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-                    for idx, im in enumerate(ordered_images, start=1):
-                        img_buffer = io.BytesIO()
-                        im.save(img_buffer, format="PNG")
-                        zf.writestr(f"image_{idx:02d}.png", img_buffer.getvalue())
-                st.download_button(
-                    "⬇️ Download image sequence ZIP", data=zip_buffer.getvalue(),
-                    file_name="image_sequence.zip", mime="application/zip",
-                    key="multiple_sequence_download"
-                )
+        order_names = st.multiselect("Choose image order", options=names, default=names, key="multiple_images_order")
+        name_to_file = dict(zip(names, files))
+        ordered_files = [name_to_file[n] for n in order_names if n in name_to_file]
+        for idx, uploaded in enumerate(ordered_files):
+            image = load_image(uploaded)
+            st.subheader(f"Photo {idx + 1}")
+            draggable_text_editor(image, title or "Add text ✨", key=f"multiple_image_editor_{idx}")
 
 
 # ==================================================
