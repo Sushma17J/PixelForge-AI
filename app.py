@@ -123,14 +123,14 @@ div[data-testid="stMetric"] {
 
 def load_image(uploaded_file):
     """
-    Safely load an uploaded image file, automatically handle EXIF rotation,
+    Safely load an uploaded image file, automatically fix EXIF rotation,
     and convert to standard RGB.
     """
     if uploaded_file is None:
         return None
     try:
         img = Image.open(uploaded_file)
-        # Fix camera/phone orientation using EXIF data
+        # Fix camera/phone orientation using EXIF metadata
         img = ImageOps.exif_transpose(img)
         return img.convert("RGB")
     except Exception as e:
@@ -230,7 +230,7 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
     image.save(buffer, format="PNG")
     image_b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
 
-    # Adapt default font size proportional to image width
+    # Adapt default font size proportional to image resolution
     base_dim = max(image.width, image.height)
     default_font_size = max(24, int(base_dim * 0.05))
     min_font_size = max(10, int(base_dim * 0.01))
@@ -322,7 +322,7 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
                 ctx.setLineDash([]);
             }}
 
-            // Render text lines with drop shadow/outline for readability
+            // Render text lines with drop shadow for readability
             lines.forEach((line, index) => {{
                 ctx.fillStyle = 'rgba(0,0,0,0.8)';
                 ctx.fillText(line, x + 2, y + 2 + (index * lineHeight));
@@ -403,7 +403,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
 
         // Download output image
         document.getElementById('download_btn').addEventListener('click', () => {{
-            // Temporarily lock to remove dashed selection border on export
             const prevLock = isLocked;
             isLocked = true;
             draw();
@@ -428,7 +427,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
 
 @st.cache_data(show_spinner=False)
 def get_banner_image():
-    # 1x1 fallback placeholder if embedded base64 is missing
     fallback_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
     try:
         raw_b64 = globals().get("BANNER_IMAGE_BASE64", fallback_b64)
@@ -861,7 +859,6 @@ elif option == "Geo-Tag Image":
                 badge_font = get_font(max(16, int(result.width * 0.025)))
                 
                 # Draw dark background badge
-                pad = 12
                 draw.rectangle([(10, 10), (int(result.width * 0.6), int(result.height * 0.18))], fill="rgba(0,0,0,180)")
                 draw.text((20, 20), badge_text, fill="white", font=badge_font)
 
@@ -968,15 +965,3 @@ elif option == "Wallpaper with Title":
             stroke_fill="black"
         )
         show_download(wallpaper, "wallpaper_1080p.png")
-```eof
-http://googleusercontent.com/immersive_entry_chip/0
-
-I have generated `app.py` with full drag-and-drop text positioning, EXIF orientation correction, session-state pipeline chaining, and image enhancement controls, along with the accompanying `README.md`.
-
-***
-
-<FollowUp>
-<ElicitationsGroup>
-Would you like to add interactive polygon or aspect-ratio bounding box cropping (e.g., using `streamlit-cropper`), or add additional custom TTF font upload capabilities for the canvas?
-</ElicitationsGroup>
-</FollowUp>
