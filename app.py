@@ -181,7 +181,7 @@ def to_dms(value):
 # ==================================================
 
 # Banner image should be in the same folder as app.py
-banner_path = "banner.png"
+banner_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "banner.png")
 
 if os.path.exists(banner_path):
     st.image(
@@ -730,9 +730,7 @@ elif option == "Add Date and Text":
     st.header("🔤 Add Date and Text")
 
     file = st.file_uploader(
-        "Upload Image",
-        type=["jpg", "jpeg", "png"],
-        key="text"
+        "Upload Image", type=["jpg", "jpeg", "png"], key="text"
     )
 
     text = st.text_input(
@@ -740,47 +738,36 @@ elif option == "Add Date and Text":
         placeholder="🎉 Happy Birthday 🎂",
         key="date_text_content"
     )
-
     date = st.date_input(
-        "Select Date",
-        value=datetime.today().date(),
-        key="date_text_date"
+        "Select Date", value=datetime.today().date(), key="date_text_date"
     )
-
     text_color = st.color_picker(
-        "Choose Text Color",
-        value="#FFFFFF",
-        key="date_text_color"
+        "Choose Text Color", value="#FFFFFF", key="date_text_color"
     )
+    font_size = st.slider("Text size", 12, 120, 40, key="date_text_size")
 
     if file:
-        image = load_image(file)
+        image = load_image(file).convert("RGBA")
         img_width, img_height = image.size
-
-        st.caption("Move the text anywhere on the image using the position controls.")
+        st.image(image, caption="Preview", use_container_width=True)
+        st.info("Set the text position below. The preview and downloaded image use these coordinates. Press Enter after typing in the text field to finish editing.")
         col_x, col_y = st.columns(2)
         with col_x:
-            x_pos = st.slider("Horizontal position", 0, max(0, img_width - 1), 30, key="date_text_x")
+            x_pos = st.slider("Horizontal position", 0, max(0, img_width - 1), min(30, img_width - 1), key="date_text_x")
         with col_y:
-            y_pos = st.slider("Vertical position", 0, max(0, img_height - 1), 30, key="date_text_y")
+            y_pos = st.slider("Vertical position", 0, max(0, img_height - 1), min(30, img_height - 1), key="date_text_y")
 
-        font_size = st.slider("Text size", 12, 120, 40, key="date_text_size")
-        draw = ImageDraw.Draw(image)
-        font = get_font(font_size)
         overlay_text = f"{text}\n{date}" if text else str(date)
-
-        # Use the selected color and a contrasting outline for legibility.
-        draw.multiline_text(
-            (x_pos, y_pos),
-            overlay_text,
-            fill=text_color,
-            font=font,
-            spacing=max(2, font_size // 5),
-            stroke_width=max(1, font_size // 20),
-            stroke_fill="#000000" if text_color.upper() != "#000000" else "#FFFFFF"
-        )
-
-        show_download(image, "image_with_text.png")
+        if overlay_text.strip():
+            draw = ImageDraw.Draw(image)
+            font = get_font(font_size)
+            draw.multiline_text(
+                (x_pos, y_pos), overlay_text, fill=text_color, font=font,
+                spacing=max(2, font_size // 5),
+                stroke_width=max(1, font_size // 20),
+                stroke_fill="#000000" if text_color.upper() != "#000000" else "#FFFFFF"
+            )
+        show_download(image.convert("RGB"), "image_with_text.png")
 
 
 # ==================================================
@@ -970,43 +957,105 @@ elif option == "Geo-Tag Image":
 
 elif option == "Multiple Images with Text":
 
-    st.header("🧩 Multiple Images with Text")
+    st.header("🧩 Multiple Images with Order, Text, Thumbnail and Wallpaper")
+    st.write("Upload photos, arrange their order, add a title/message, and create a collage wallpaper or image sequence.")
 
     files = st.file_uploader(
-        "Upload Multiple Images",
-        type=["jpg", "jpeg", "png"],
-        accept_multiple_files=True,
-        key="multiple_images_upload"
-    )
-
-    title = st.text_input(
-        "Enter Title (emojis supported)",
-        placeholder="✨ My Memories 📸",
-        key="multiple_images_title"
-    )
-
-    title_color = st.color_picker(
-        "Choose Text Color",
-        value="#000000",
-        key="multiple_images_text_color"
+        "Upload Multiple Images", type=["jpg", "jpeg", "png"],
+        accept_multiple_files=True, key="multiple_images_upload"
     )
 
     if files:
-        images = [load_image(file).resize((300, 300)) for file in files]
-        columns = 3
-        rows = (len(images) + columns - 1) // columns
+        # Preserve the original uploaded image data and allow users to choose ordering.
+        names = [f"{i + 1}. {f.name}" for i, f in enumerate(files)]
+        order_names = st.multiselect(
+            "Choose photo order (top-to-bottom; selected order is used)",
+            options=names, default=names, key="multiple_images_order"
+        )
+        title = st.text_input(
+            "Wallpaper title / text (emojis supported)",
+            placeholder="🎉 Happy Birthday 🎂❤️", key="multiple_images_title"
+        )
+        title_color = st.color_picker(
+            "Title text color", value="#FFFFFF", key="multiple_images_text_color"
+        )
+        title_size = st.slider("Title text size", 12, 150, 60, key="multiple_images_title_size")
+        layout = st.selectbox(
+            "Wallpaper layout", ["Collage grid", "Vertical photo sequence", "Horizontal photo sequence"],
+            key="multiple_images_layout"
+        )
+        if order_names:
+            name_to_file = dict(zip(names, files))
+            ordered_files = [name_to_file[n] for n in order_names if n in name_to_file]
+            ordered_images = [load_image(f).convert("RGB") for f in ordered_files]
 
-        canvas = Image.new("RGB", (columns * 320, rows * 350 + 100), "white")
-        draw = ImageDraw.Draw(canvas)
-        draw.text((20, 20), title, fill=title_color, font=get_font(40))
+            # Preview uploaded photos without generated Image 1/Image 2 captions.
+            preview_cols = st.columns(min(4, len(ordered_images)))
+            for idx, im in enumerate(ordered_images):
+                with preview_cols[idx % len(preview_cols)]:
+                    st.image(im, use_container_width=True)
 
-        for i, image in enumerate(images):
-            x = (i % columns) * 320 + 10
-            y = (i // columns) * 350 + 100
-            canvas.paste(image, (x, y))
-            # Intentionally omit the old "Image 1", "Image 2" labels.
+            if layout == "Collage grid":
+                thumb_w, thumb_h = 420, 420
+                cols = min(2, len(ordered_images))
+                rows = (len(ordered_images) + cols - 1) // cols
+                canvas = Image.new("RGB", (cols * thumb_w, rows * thumb_h), "#202840")
+                for idx, im in enumerate(ordered_images):
+                    thumb = ImageOps.fit(im, (thumb_w, thumb_h))
+                    x = (idx % cols) * thumb_w
+                    y = (idx // cols) * thumb_h
+                    canvas.paste(thumb, (x, y))
+            elif layout == "Vertical photo sequence":
+                thumb_w, thumb_h = 900, 600
+                canvas = Image.new("RGB", (thumb_w, len(ordered_images) * thumb_h), "#202840")
+                for idx, im in enumerate(ordered_images):
+                    canvas.paste(ImageOps.fit(im, (thumb_w, thumb_h)), (0, idx * thumb_h))
+            else:
+                thumb_w, thumb_h = 600, 900
+                canvas = Image.new("RGB", (len(ordered_images) * thumb_w, thumb_h), "#202840")
+                for idx, im in enumerate(ordered_images):
+                    canvas.paste(ImageOps.fit(im, (thumb_w, thumb_h)), (idx * thumb_w, 0))
 
-        show_download(canvas, "multiple_images.png")
+            # Title banner across the finished wallpaper; emoji text supported by Pillow font fallback.
+            if title.strip():
+                draw = ImageDraw.Draw(canvas)
+                pad = max(16, int(canvas.width * 0.02))
+                font = get_font(title_size)
+                bbox = draw.multiline_textbbox((0, 0), title, font=font, spacing=8, stroke_width=2)
+                text_h = bbox[3] - bbox[1]
+                banner_h = text_h + pad * 2
+                draw.rectangle((0, 0, canvas.width, banner_h), fill=(0, 0, 0, 180))
+                draw.multiline_text(
+                    (pad, pad), title, fill=title_color, font=font, spacing=8,
+                    stroke_width=2,
+                    stroke_fill="#000000" if title_color.upper() != "#000000" else "#FFFFFF"
+                )
+
+            st.subheader("Final wallpaper / collage preview")
+            st.image(canvas, use_container_width=True)
+            show_download(canvas, "multiple_images_wallpaper.png")
+
+            # Offer individual resized thumbnails and a ZIP of image sequence.
+            st.subheader("Create thumbnail")
+            thumb_size = st.selectbox("Thumbnail size", ["320 × 320", "640 × 360", "1280 × 720"], key="multiple_thumb_size")
+            tw, th = [int(v.strip()) for v in thumb_size.split("×")]
+            thumbnail = ImageOps.fit(canvas, (tw, th))
+            show_download(thumbnail, "multiple_images_thumbnail.png")
+
+            st.subheader("Download image sequence")
+            if st.button("Prepare image sequence ZIP", key="multiple_sequence_zip"):
+                import zipfile
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for idx, im in enumerate(ordered_images, start=1):
+                        img_buffer = io.BytesIO()
+                        im.save(img_buffer, format="PNG")
+                        zf.writestr(f"image_{idx:02d}.png", img_buffer.getvalue())
+                st.download_button(
+                    "⬇️ Download image sequence ZIP", data=zip_buffer.getvalue(),
+                    file_name="image_sequence.zip", mime="application/zip",
+                    key="multiple_sequence_download"
+                )
 
 
 # ==================================================
