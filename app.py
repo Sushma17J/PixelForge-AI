@@ -1,15 +1,20 @@
-import streamlit as st
+import base64
+from datetime import datetime
+import io
+import json
+import os
 from PIL import (
-    Image, ImageOps, ImageDraw, ImageFont,
-    ImageFilter, ImageEnhance, PngImagePlugin
+    Image,
+    ImageDraw,
+    ImageEnhance,
+    ImageFilter,
+    ImageFont,
+    ImageOps,
+    PngImagePlugin,
 )
 import numpy as np
-import io
-import os
-import base64
-import json
-from datetime import datetime
 import piexif
+import streamlit as st
 import streamlit.components.v1 as components
 
 # ==================================================
@@ -218,8 +223,8 @@ def to_dms(value):
 def draggable_text_editor(image, initial_text, key="draggable_text_component"):
     """
     Interactive HTML5 canvas component:
-    - Pure drag & drop text positioning using mouse / touch coordinates (no coordinate sliders needed).
-    - Font scale adapts automatically to image resolution (works on 500px or 4000px photos).
+    - Pure drag & drop text positioning using mouse / touch coordinates.
+    - Font scale adapts automatically to image resolution.
     - Text styling options: Font size, Color, Background badge toggle, and stroke.
     - Direct export and client-side download as high-res PNG.
     """
@@ -230,7 +235,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
     image.save(buffer, format="PNG")
     image_b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
 
-    # Adapt default font size proportional to image resolution
     base_dim = max(image.width, image.height)
     default_font_size = max(24, int(base_dim * 0.05))
     min_font_size = max(10, int(base_dim * 0.01))
@@ -288,10 +292,8 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
             canvas.width = img.naturalWidth;
             canvas.height = img.naturalHeight;
 
-            // Render original image
             ctx.drawImage(img, 0, 0);
 
-            // Configure text styling
             ctx.font = `bold ${{size}}px Arial, sans-serif`;
             ctx.textBaseline = 'top';
 
@@ -305,7 +307,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
             const padX = size * 0.35;
             const padY = size * 0.25;
 
-            // Optional background box
             if (showBg) {{
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
                 ctx.beginPath();
@@ -313,7 +314,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
                 ctx.fill();
             }}
 
-            // Draw bounding selection stroke if unlocked
             if (!isLocked) {{
                 ctx.strokeStyle = '#00e1ff';
                 ctx.lineWidth = Math.max(2, canvas.width / 600);
@@ -322,7 +322,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
                 ctx.setLineDash([]);
             }}
 
-            // Render text lines with drop shadow for readability
             lines.forEach((line, index) => {{
                 ctx.fillStyle = 'rgba(0,0,0,0.8)';
                 ctx.fillText(line, x + 2, y + 2 + (index * lineHeight));
@@ -333,7 +332,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
 
         img.onload = draw;
 
-        // UI Listeners
         const fsInput = document.getElementById('fs');
         const fsVal = document.getElementById('fs_val');
         fsInput.addEventListener('input', (e) => {{
@@ -362,7 +360,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
             draw();
         }});
 
-        // Coordinate calculations
         function getCanvasPoint(evt) {{
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -373,7 +370,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
             }};
         }}
 
-        // Freeform Moveable Event Handling
         canvas.addEventListener('pointerdown', (e) => {{
             if (isLocked) return;
             const pt = getCanvasPoint(e);
@@ -401,7 +397,6 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
         canvas.addEventListener('pointerup', stopDrag);
         canvas.addEventListener('pointercancel', stopDrag);
 
-        // Download output image
         document.getElementById('download_btn').addEventListener('click', () => {{
             const prevLock = isLocked;
             isLocked = true;
@@ -422,20 +417,24 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
 
 
 # ==================================================
-# HEADER BANNER (CACHED)
+# HEADER BANNER (pragyanai_banner.jpeg)
 # ==================================================
 
-@st.cache_data(show_spinner=False)
-def get_banner_image():
-    fallback_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-    try:
-        raw_b64 = globals().get("BANNER_IMAGE_BASE64", fallback_b64)
-        bytes_data = base64.b64decode(raw_b64)
-        return Image.open(io.BytesIO(bytes_data)).convert("RGB")
-    except Exception:
-        return Image.new("RGB", (1200, 200), color="#101d39")
+BANNER_PATH = "pragyanai_banner.jpeg"
 
-st.image(get_banner_image(), use_container_width=True)
+if os.path.exists(BANNER_PATH):
+    st.image(BANNER_PATH, use_container_width=True)
+else:
+    # Stylized banner display if file is missing in directory
+    st.markdown(
+        """
+        <div style="background: linear-gradient(90deg, #0b1730, #142b55); padding: 25px; border-radius: 10px; text-align: center; border: 1px solid #233b66; margin-bottom: 20px;">
+            <h1 style="color: #63b3ff; margin: 0; font-size: 30px;">🖼️ PragyanAI - Pixel_Forge-AI</h1>
+            <p style="color: #d4def2; margin: 5px 0 0 0; font-size: 14px;">Studio Image Processing & Enhancement</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 # ==================================================
@@ -463,8 +462,8 @@ features = [
     "Passport Size Photo Frame",
     "Stamp Size Photo",
     "Image Similarity",
-    "Add Text to Image (Moveable)",
-    "Add Date and Text (Moveable)",
+    "Add Text to Image",
+    "Add Date and Text",
     "Image Enhancements & Rotate",
     "Geo-Tag Image",
     "Multiple Images with Text",
@@ -514,7 +513,7 @@ if option == "Home":
     st.subheader("Explore Tool Suite")
     feature_data = [
         ("🟣 Image Blending", "Blend two images together seamlessly with transparency control."),
-        ("🖼️ Background Change", "AI-powered subject cutout and background replacement."),
+        ("🖼️ Background Change", "AI-powered subject cutout placed cleanly over custom background scenery."),
         ("⚫ Black & White", "High-contrast grayscale and monochrome conversions."),
         ("✏️ Sketch Effect", "Turn portraits and landscapes into realistic pencil sketches."),
         ("🪪 Passport Photo Frame", "Generate standard multi-copy passport photo print sheets."),
@@ -574,24 +573,41 @@ elif option == "Image Blending":
 
 elif option == "Background Change":
     st.header("🖼️ Background Change (AI)")
-    st.write("Remove the foreground background and composite it onto a new background image.")
+    st.write(
+        "Upload a photo of a **person/subject** and a **new scenery/background** photo. "
+        "The AI extracts the subject and places them **in front of** the new scenery cleanly."
+    )
 
     col1, col2 = st.columns(2)
     with col1:
-        fg_img = get_primary_image("fg_upload", "Upload Foreground Subject")
+        st.subheader("1. Subject / Person")
+        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (e.g., Portrait)")
         if fg_img:
-            st.image(fg_img, caption="Foreground", use_container_width=True)
+            st.image(fg_img, caption="Subject", use_container_width=True)
     with col2:
-        bg_file = st.file_uploader("Upload New Background", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
+        st.subheader("2. New Background Scenery")
+        bg_file = st.file_uploader("Upload Scenery Photo (e.g., Eiffel Tower, Beach)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
         bg_img = load_image(bg_file) if bg_file else None
         if bg_img:
-            st.image(bg_img, caption="Background", use_container_width=True)
+            st.image(bg_img, caption="Scenery", use_container_width=True)
 
     if fg_img and bg_img:
-        if st.button("✨ Remove & Replace Background", key="exec_bg_change"):
-            with st.spinner("Processing cutout with rembg..."):
+        st.markdown("---")
+        st.subheader("Adjust Positioning & Scale")
+        col_s, col_x, col_y = st.columns(3)
+        with col_s:
+            scale = st.slider("Subject Scale", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
+        with col_x:
+            shift_x = st.slider("Horizontal Position (Left ↔ Right)", min_value=-400, max_value=400, value=0, step=10)
+        with col_y:
+            shift_y = st.slider("Vertical Position (Up ↕ Down)", min_value=-400, max_value=400, value=0, step=10)
+
+        if st.button("✨ Apply Background Change", key="exec_bg_change"):
+            with st.spinner("Extracting subject and placing in front of scenery..."):
                 try:
                     from rembg import remove
+
+                    # 1. Remove background from foreground subject
                     fg_rgba = fg_img.convert("RGBA")
                     fg_cutout = remove(fg_rgba)
                     if not isinstance(fg_cutout, Image.Image):
@@ -599,17 +615,30 @@ elif option == "Background Change":
                     else:
                         fg_cutout = fg_cutout.convert("RGBA")
 
-                    # Match background to foreground dimensions
-                    bg_matched = ImageOps.fit(bg_img.convert("RGBA"), fg_cutout.size, method=Image.Resampling.LANCZOS)
-                    bg_matched.alpha_composite(fg_cutout)
-                    result = bg_matched.convert("RGB")
-                    
-                    st.success("Background successfully changed!")
-                    show_download(result, "new_background.png")
+                    # 2. Canvas dimension based on background or foreground size
+                    target_w, target_h = bg_img.size
+                    bg_canvas = bg_img.convert("RGBA")
+
+                    # 3. Apply custom scale to subject
+                    new_w = max(50, int(fg_cutout.width * scale))
+                    new_h = max(50, int(fg_cutout.height * scale))
+                    fg_cutout = fg_cutout.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+                    # 4. Position: Centered horizontally, bottom-aligned vertically
+                    pos_x = (target_w - fg_cutout.width) // 2 + shift_x
+                    pos_y = (target_h - fg_cutout.height) + shift_y
+
+                    # 5. Paste cutout ON TOP of background scenery using alpha channel as mask
+                    bg_canvas.paste(fg_cutout, (pos_x, pos_y), mask=fg_cutout)
+
+                    result = bg_canvas.convert("RGB")
+                    st.success("Background replaced successfully!")
+                    show_download(result, "new_scenery_portrait.png")
+
                 except ImportError:
-                    st.error("The `rembg` library is required for AI background removal. Install it using `pip install rembg`.")
+                    st.error("The `rembg` library is required. Install it using: `pip install rembg`")
                 except Exception as e:
-                    st.error(f"Error while removing background: {e}")
+                    st.error(f"Error while processing: {e}")
 
 
 # ==================================================
@@ -648,7 +677,6 @@ elif option == "Color to Sketch":
         gray_np = np.array(gray).astype(float)
         blurred_np = np.array(blurred).astype(float)
 
-        # Color dodge blend algorithm
         sketch_np = gray_np * 255.0 / (255.0 - blurred_np + 1.0)
         sketch_np = np.clip(sketch_np, 0, 255)
         sketch = Image.fromarray(sketch_np.astype(np.uint8))
@@ -746,7 +774,6 @@ elif option == "Image Similarity":
             similarity_pct = max(0.0, float(score) * 100.0)
             st.metric("Similarity Score", f"{similarity_pct:.2f}%")
         except ImportError:
-            # Fallback: Root Mean Squared Error similarity estimate
             mse = np.mean((arr1.astype(float) - arr2.astype(float)) ** 2)
             rmse_similarity = max(0.0, 100.0 - (np.sqrt(mse) / 255.0 * 100.0))
             st.metric("Similarity Score (Pixel Distance Metric)", f"{rmse_similarity:.2f}%")
@@ -809,7 +836,6 @@ elif option == "Image Enhancements & Rotate":
             flip_h = st.checkbox("Flip Horizontally (Mirror)")
             flip_v = st.checkbox("Flip Vertically")
 
-        # Apply adjustments sequentially
         enhanced = image.copy()
         if brightness != 1.0:
             enhanced = ImageEnhance.Brightness(enhanced).enhance(brightness)
@@ -858,7 +884,6 @@ elif option == "Geo-Tag Image":
                 badge_text = f"📍 {location}\nLAT: {lat:.4f} | LON: {lon:.4f}\nTIME: {timestamp_str}"
                 badge_font = get_font(max(16, int(result.width * 0.025)))
                 
-                # Draw dark background badge
                 draw.rectangle([(10, 10), (int(result.width * 0.6), int(result.height * 0.18))], fill="rgba(0,0,0,180)")
                 draw.text((20, 20), badge_text, fill="white", font=badge_font)
 
@@ -950,12 +975,10 @@ elif option == "Wallpaper with Title":
     title = st.text_input("Wallpaper Title", value="NATURE VIBES 🌿")
 
     if image:
-        # Fit precisely to 16:9 1080p Full HD
         wallpaper = ImageOps.fit(image, (1920, 1080), method=Image.Resampling.LANCZOS)
         draw = ImageDraw.Draw(wallpaper)
         font = get_font(size=72)
 
-        # Draw stroke for high-contrast visibility against any photo
         draw.text(
             (80, 80),
             title,
