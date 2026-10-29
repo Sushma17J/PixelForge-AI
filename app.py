@@ -1,4 +1,3 @@
-
 import streamlit as st
 from PIL import (
     Image, ImageOps, ImageDraw, ImageFont,
@@ -175,7 +174,7 @@ def to_dms(value):
 # ==================================================
 
 # Banner image should be in the same folder as app.py
-banner_path = "pragyanai_banner.png"
+banner_path = "banner.png"
 
 if os.path.exists(banner_path):
     st.image(
@@ -463,12 +462,18 @@ elif option == "Color to Sketch":
             ImageFilter.GaussianBlur(radius=10)
         )
 
-        sketch = ImageChops.divide(
-            gray,
-            ImageOps.invert(blurred),
-            scale=1.5,
-            offset=0
-        )
+        # Convert images to NumPy arrays for the sketch calculation
+        gray_np = np.array(gray).astype(float)
+        blurred_np = np.array(blurred).astype(float)
+
+        # Create the pencil sketch effect (dodge blend)
+        sketch_np = gray_np * 255 / (255 - blurred_np + 1)
+
+        # Keep pixel values in the valid range
+        sketch_np = np.clip(sketch_np, 0, 255)
+
+        # Convert the NumPy array back to a PIL image
+        sketch = Image.fromarray(sketch_np.astype(np.uint8))
 
         show_download(
             sketch,
