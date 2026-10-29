@@ -115,11 +115,18 @@ def load_image(uploaded_file):
 
 
 def get_font(size=30):
-    """Load a font with fallback."""
-    try:
-        return ImageFont.truetype("arial.ttf", size)
-    except:
-        return ImageFont.load_default()
+    """Load a font with fallback, preferring fonts with emoji support."""
+    for font_path in (
+        "C:/Windows/Fonts/seguiemj.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+    ):
+        try:
+            return ImageFont.truetype(font_path, size)
+        except (OSError, ValueError):
+            continue
+    return ImageFont.load_default()
 
 
 def image_to_bytes(image, format="PNG"):
@@ -729,38 +736,51 @@ elif option == "Add Date and Text":
     )
 
     text = st.text_input(
-        "Enter Text",
-        placeholder="Happy Birthday"
+        "Enter Text (emojis supported)",
+        placeholder="🎉 Happy Birthday 🎂",
+        key="date_text_content"
     )
 
     date = st.date_input(
         "Select Date",
-        value=datetime.today().date()
+        value=datetime.today().date(),
+        key="date_text_date"
+    )
+
+    text_color = st.color_picker(
+        "Choose Text Color",
+        value="#FFFFFF",
+        key="date_text_color"
     )
 
     if file:
-
         image = load_image(file)
+        img_width, img_height = image.size
 
+        st.caption("Move the text anywhere on the image using the position controls.")
+        col_x, col_y = st.columns(2)
+        with col_x:
+            x_pos = st.slider("Horizontal position", 0, max(0, img_width - 1), 30, key="date_text_x")
+        with col_y:
+            y_pos = st.slider("Vertical position", 0, max(0, img_height - 1), 30, key="date_text_y")
+
+        font_size = st.slider("Text size", 12, 120, 40, key="date_text_size")
         draw = ImageDraw.Draw(image)
+        font = get_font(font_size)
+        overlay_text = f"{text}\n{date}" if text else str(date)
 
-        font = get_font(40)
-
-        overlay_text = f"{text}\n{date}"
-
-        draw.text(
-            (30, 30),
+        # Use the selected color and a contrasting outline for legibility.
+        draw.multiline_text(
+            (x_pos, y_pos),
             overlay_text,
-            fill="white",
+            fill=text_color,
             font=font,
-            stroke_width=2,
-            stroke_fill="black"
+            spacing=max(2, font_size // 5),
+            stroke_width=max(1, font_size // 20),
+            stroke_fill="#000000" if text_color.upper() != "#000000" else "#FFFFFF"
         )
 
-        show_download(
-            image,
-            "image_with_text.png"
-        )
+        show_download(image, "image_with_text.png")
 
 
 # ==================================================
@@ -955,72 +975,38 @@ elif option == "Multiple Images with Text":
     files = st.file_uploader(
         "Upload Multiple Images",
         type=["jpg", "jpeg", "png"],
-        accept_multiple_files=True
+        accept_multiple_files=True,
+        key="multiple_images_upload"
     )
 
     title = st.text_input(
-        "Enter Title",
-        placeholder="My Memories"
+        "Enter Title (emojis supported)",
+        placeholder="✨ My Memories 📸",
+        key="multiple_images_title"
+    )
+
+    title_color = st.color_picker(
+        "Choose Text Color",
+        value="#000000",
+        key="multiple_images_text_color"
     )
 
     if files:
-
-        images = [
-            load_image(file).resize(
-                (300, 300)
-            )
-            for file in files
-        ]
-
+        images = [load_image(file).resize((300, 300)) for file in files]
         columns = 3
+        rows = (len(images) + columns - 1) // columns
 
-        rows = (
-            len(images) + columns - 1
-        ) // columns
-
-        canvas = Image.new(
-            "RGB",
-            (
-                columns * 320,
-                rows * 350 + 100
-            ),
-            "white"
-        )
-
+        canvas = Image.new("RGB", (columns * 320, rows * 350 + 100), "white")
         draw = ImageDraw.Draw(canvas)
-
-        draw.text(
-            (20, 20),
-            title,
-            fill="black",
-            font=get_font(40)
-        )
+        draw.text((20, 20), title, fill=title_color, font=get_font(40))
 
         for i, image in enumerate(images):
+            x = (i % columns) * 320 + 10
+            y = (i // columns) * 350 + 100
+            canvas.paste(image, (x, y))
+            # Intentionally omit the old "Image 1", "Image 2" labels.
 
-            x = (
-                i % columns
-            ) * 320 + 10
-
-            y = (
-                i // columns
-            ) * 350 + 100
-
-            canvas.paste(
-                image,
-                (x, y)
-            )
-
-            draw.text(
-                (x, y + 305),
-                f"Image {i + 1}",
-                fill="black"
-            )
-
-        show_download(
-            canvas,
-            "multiple_images.png"
-        )
+        show_download(canvas, "multiple_images.png")
 
 
 # ==================================================
