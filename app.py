@@ -175,7 +175,7 @@ def to_dms(value):
 # ==================================================
 
 # Banner image should be in the same folder as app.py
-banner_path = "banner.png"
+banner_path = "pragyanai_banner.png"
 
 if os.path.exists(banner_path):
     st.image(
