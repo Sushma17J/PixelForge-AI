@@ -212,6 +212,31 @@ def resize_crop(image, size):
     return ImageOps.fit(image, size, method=Image.Resampling.LANCZOS)
 
 
+def fit_image_contain(image, target_size, bg_color=(8, 15, 30)):
+    """
+    Scales image to fit inside target_size WITHOUT cropping any part of the image.
+    Pads the remaining area with bg_color so the cell dimensions match perfectly.
+    """
+    target_w, target_h = target_size
+    img_ratio = image.width / float(image.height)
+    target_ratio = target_w / float(target_h)
+
+    if img_ratio > target_ratio:
+        new_w = target_w
+        new_h = max(1, int(target_w / img_ratio))
+    else:
+        new_h = target_h
+        new_w = max(1, int(target_h * img_ratio))
+
+    resized_img = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    
+    cell = Image.new("RGB", (target_w, target_h), bg_color)
+    pos_x = (target_w - new_w) // 2
+    pos_y = (target_h - new_h) // 2
+    cell.paste(resized_img, (pos_x, pos_y))
+    return cell
+
+
 def to_dms(value):
     value = abs(value)
     degrees = int(value)
@@ -599,7 +624,7 @@ if option == "Home":
         ("🔤 Add Date & Stamp", "Stamp dates and captions directly onto your images."),
         ("🎨 Adjust & Rotate Photo", "Change brightness, contrast, sharpness, saturation, and rotation."),
         ("📍 Add GPS Location (Geo-Tag)", "Burn realistic GPS camera location badges & EXIF data."),
-        ("🧩 Photo Collage, Wallpaper & Frame Story", "Order photos into multi-image collages or 1080p wallpapers with title text."),
+        ("🧩 Photo Collage, Wallpaper & Frame Story", "Order photos into multi-image collages or 1080p wallpapers without any image cutting."),
         ("🖼️ Thumbnail Generator", "Quickly create clean thumbnails without distorting image proportions.")
     ]
 
@@ -1064,14 +1089,15 @@ elif option == "Add GPS Location (Geo-Tag)":
 
 
 # ==================================================
-# 13. PHOTO COLLAGE, WALLPAPER & FRAME STORY
+# 13. PHOTO COLLAGE, WALLPAPER & FRAME STORY (NO CROPPING)
 # ==================================================
 
 elif option == "Photo Collage, Wallpaper & Frame Story":
     st.header("🧩 Photo Collage, Wallpaper & Frame Story")
     st.write(
         "Upload photos, arrange their order, select a layout "
-        "(or Full HD 1080p Wallpaper mode), and position your title/text freely across the finished frame."
+        "(or Full HD 1080p Wallpaper mode), and position your title/text freely across the finished frame. "
+        "Every photo is resized to equal uniform cells **without cutting or cropping any part of your image**."
     )
 
     files = st.file_uploader(
@@ -1096,122 +1122,138 @@ elif option == "Photo Collage, Wallpaper & Frame Story":
             layout_style = st.selectbox(
                 "Canvas Output Format",
                 [
+                    "Auto-Balanced Grid (Adaptive to Image Count)",
                     "Full HD 1080p Wallpaper (1920x1080)",
                     "Vertical Strip (Stacked)",
-                    "Horizontal Strip (Side-by-Side)",
-                    "2-Column Photo Grid"
+                    "Horizontal Strip (Side-by-Side)"
                 ]
             )
         with col_space:
-            spacing = st.slider("Spacing Between Photos (px)", 0, 50, 15)
+            spacing = st.slider("Border / Gap Between Photos (px)", 0, 40, 12)
 
         story_text = st.text_area(
             "Headline Title / Caption (Emojis supported)",
-            value="NATURE VIBES 🌿\nAdventure 2026",
+            value="MEMORIES 2026 ✨\nAdventure & Story",
             height=70
         )
 
         if selected_order and st.button("🖼️ Generate Combined Canvas / Wallpaper", key="btn_build_canvas"):
             ordered_imgs = [load_image(file_map[name]) for name in selected_order if file_map.get(name)]
-            
-            if layout_style == "Full HD 1080p Wallpaper (1920x1080)":
+            num_imgs = len(ordered_imgs)
+            bg_theme_color = (8, 15, 30)
+
+            # ----------------------------------------------------
+            # MODE A: AUTO-BALANCED GRID (ADAPTIVE TO COUNT, NO-CROP)
+            # ----------------------------------------------------
+            if layout_style == "Auto-Balanced Grid (Adaptive to Image Count)":
+                if num_imgs <= 3:
+                    cols = num_imgs
+                elif num_imgs == 4:
+                    cols = 2
+                elif num_imgs in (5, 6):
+                    cols = 3
+                elif num_imgs in (7, 8):
+                    cols = 4
+                else:
+                    cols = 4
+
+                rows = (num_imgs + cols - 1) // cols
+                cell_dim = (650, 480)
+
+                total_w = (cell_dim[0] * cols) + (spacing * (cols + 1))
+                total_h = (cell_dim[1] * rows) + (spacing * (rows + 1))
+                collage_canvas = Image.new("RGB", (total_w, total_h), bg_theme_color)
+
+                for i, im in enumerate(ordered_imgs):
+                    r_idx = i // cols
+                    c_idx = i % cols
+                    fitted = fit_image_contain(im, cell_dim, bg_theme_color)
+                    x = spacing + c_idx * (cell_dim[0] + spacing)
+                    y = spacing + r_idx * (cell_dim[1] + spacing)
+                    collage_canvas.paste(fitted, (x, y))
+
+            # ----------------------------------------------------
+            # MODE B: FULL HD 1080p WALLPAPER (1920 x 1080, NO-CROP)
+            # ----------------------------------------------------
+            elif layout_style == "Full HD 1080p Wallpaper (1920x1080)":
                 total_w, total_h = 1920, 1080
-                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
-                num_imgs = len(ordered_imgs)
+                collage_canvas = Image.new("RGB", (total_w, total_h), bg_theme_color)
 
                 if num_imgs == 1:
-                    collage_canvas = ImageOps.fit(ordered_imgs[0], (total_w, total_h), method=Image.Resampling.LANCZOS)
+                    cell_size = (total_w - (spacing * 2), total_h - (spacing * 2))
+                    fitted = fit_image_contain(ordered_imgs[0], cell_size, bg_theme_color)
+                    collage_canvas.paste(fitted, (spacing, spacing))
+
                 elif num_imgs == 2:
                     cell_w = (total_w - (spacing * 3)) // 2
                     cell_h = total_h - (spacing * 2)
                     for i, im in enumerate(ordered_imgs[:2]):
-                        cropped = ImageOps.fit(im, (cell_w, cell_h), method=Image.Resampling.LANCZOS)
+                        fitted = fit_image_contain(im, (cell_w, cell_h), bg_theme_color)
                         x = spacing + i * (cell_w + spacing)
-                        collage_canvas.paste(cropped, (x, spacing))
+                        collage_canvas.paste(fitted, (x, spacing))
+
                 elif num_imgs == 3:
-                    hero_w = int(total_w * 0.6) - spacing
+                    hero_w = int(total_w * 0.58) - spacing
                     right_w = total_w - hero_w - (spacing * 3)
                     half_h = (total_h - (spacing * 3)) // 2
 
-                    hero_img = ImageOps.fit(ordered_imgs[0], (hero_w, total_h - (spacing * 2)), method=Image.Resampling.LANCZOS)
-                    collage_canvas.paste(hero_img, (spacing, spacing))
+                    hero_fitted = fit_image_contain(ordered_imgs[0], (hero_w, total_h - (spacing * 2)), bg_theme_color)
+                    collage_canvas.paste(hero_fitted, (spacing, spacing))
 
-                    top_r = ImageOps.fit(ordered_imgs[1], (right_w, half_h), method=Image.Resampling.LANCZOS)
+                    top_r = fit_image_contain(ordered_imgs[1], (right_w, half_h), bg_theme_color)
                     collage_canvas.paste(top_r, (hero_w + (spacing * 2), spacing))
 
-                    bot_r = ImageOps.fit(ordered_imgs[2], (right_w, half_h), method=Image.Resampling.LANCZOS)
+                    bot_r = fit_image_contain(ordered_imgs[2], (right_w, half_h), bg_theme_color)
                     collage_canvas.paste(bot_r, (hero_w + (spacing * 2), half_h + (spacing * 2)))
+
                 else:
                     cell_w = (total_w - (spacing * 3)) // 2
                     cell_h = (total_h - (spacing * 3)) // 2
                     for i, im in enumerate(ordered_imgs[:4]):
                         r_idx = i // 2
                         c_idx = i % 2
-                        cropped = ImageOps.fit(im, (cell_w, cell_h), method=Image.Resampling.LANCZOS)
+                        fitted = fit_image_contain(im, (cell_w, cell_h), bg_theme_color)
                         x = spacing + c_idx * (cell_w + spacing)
                         y = spacing + r_idx * (cell_h + spacing)
-                        collage_canvas.paste(cropped, (x, y))
+                        collage_canvas.paste(fitted, (x, y))
 
+            # ----------------------------------------------------
+            # MODE C: VERTICAL STRIP (STACKED, NO-CROP)
+            # ----------------------------------------------------
             elif layout_style == "Vertical Strip (Stacked)":
-                target_w = 900
-                resized_imgs = []
-                for img in ordered_imgs:
-                    ratio = target_w / float(img.width)
-                    target_h = int(float(img.height) * float(ratio))
-                    resized_imgs.append(img.resize((target_w, target_h), Image.Resampling.LANCZOS))
+                cell_dim = (900, 600)
+                total_w = cell_dim[0] + (spacing * 2)
+                total_h = (cell_dim[1] * num_imgs) + (spacing * (num_imgs + 1))
+                collage_canvas = Image.new("RGB", (total_w, total_h), bg_theme_color)
 
-                total_w = target_w + (spacing * 2)
-                total_h = sum(im.height for im in resized_imgs) + (spacing * (len(resized_imgs) + 1))
-                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
+                for i, im in enumerate(ordered_imgs):
+                    fitted = fit_image_contain(im, cell_dim, bg_theme_color)
+                    y = spacing + i * (cell_dim[1] + spacing)
+                    collage_canvas.paste(fitted, (spacing, y))
 
-                curr_y = spacing
-                for im in resized_imgs:
-                    collage_canvas.paste(im, (spacing, curr_y))
-                    curr_y += im.height + spacing
-
-            elif layout_style == "Horizontal Strip (Side-by-Side)":
-                fixed_h = 600
-                horiz_resized = []
-                for img in ordered_imgs:
-                    r = fixed_h / float(img.height)
-                    w = int(float(img.width) * float(r))
-                    horiz_resized.append(img.resize((w, fixed_h), Image.Resampling.LANCZOS))
-
-                total_w = sum(im.width for im in horiz_resized) + (spacing * (len(horiz_resized) + 1))
-                total_h = fixed_h + (spacing * 2)
-                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
-
-                curr_x = spacing
-                for im in horiz_resized:
-                    collage_canvas.paste(im, (curr_x, spacing))
-                    curr_x += im.width + spacing
-
+            # ----------------------------------------------------
+            # MODE D: HORIZONTAL STRIP (SIDE-BY-SIDE, NO-CROP)
+            # ----------------------------------------------------
             else:
-                cols = 2
-                grid_cell_size = (600, 450)
-                grid_imgs = [resize_crop(im, grid_cell_size) for im in ordered_imgs]
-                
-                rows = (len(grid_imgs) + cols - 1) // cols
-                total_w = (grid_cell_size[0] * cols) + (spacing * (cols + 1))
-                total_h = (grid_cell_size[1] * rows) + (spacing * (rows + 1))
-                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
+                cell_dim = (600, 500)
+                total_w = (cell_dim[0] * num_imgs) + (spacing * (num_imgs + 1))
+                total_h = cell_dim[1] + (spacing * 2)
+                collage_canvas = Image.new("RGB", (total_w, total_h), bg_theme_color)
 
-                for i, im in enumerate(grid_imgs):
-                    r_idx = i // cols
-                    c_idx = i % cols
-                    x = spacing + c_idx * (grid_cell_size[0] + spacing)
-                    y = spacing + r_idx * (grid_cell_size[1] + spacing)
-                    collage_canvas.paste(im, (x, y))
+                for i, im in enumerate(ordered_imgs):
+                    fitted = fit_image_contain(im, cell_dim, bg_theme_color)
+                    x = spacing + i * (cell_dim[0] + spacing)
+                    collage_canvas.paste(fitted, (x, spacing))
 
             st.session_state["active_collage"] = collage_canvas
-            st.success("Canvas generated! Position your text title below.")
+            st.success("Collage canvas generated with full photos preserved! Drag your title/caption below.")
 
         if "active_collage" in st.session_state and st.session_state["active_collage"] is not None:
             st.markdown("---")
             st.subheader("2. Drag & Position Your Title Anywhere on the Frame")
             draggable_text_editor(
                 st.session_state["active_collage"],
-                story_text or "Wallpaper Title",
+                story_text or "Story Title ✨",
                 key="collage_story_canvas"
             )
 
