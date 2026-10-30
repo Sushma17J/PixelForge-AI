@@ -225,6 +225,97 @@ def to_dms(value):
     )
 
 
+def create_location_app_stamp(
+    image,
+    location_name,
+    lat,
+    lon,
+    timestamp_str,
+    badge_style="GPS Camera Card",
+    position="Bottom Left"
+):
+    img_w, img_h = image.size
+    overlay = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    title_size = max(18, int(img_w * 0.032))
+    sub_size = max(13, int(img_w * 0.020))
+
+    title_font = get_font(title_size)
+    sub_font = get_font(sub_size)
+
+    lat_dir = "N" if lat >= 0 else "S"
+    lon_dir = "E" if lon >= 0 else "W"
+    coord_str = f"Lat: {abs(lat):.4f}° {lat_dir}  |  Long: {abs(lon):.4f}° {lon_dir}"
+    time_label = f"📅 {timestamp_str}"
+
+    lines = [
+        f"📍 {location_name or 'Current Location'}",
+        coord_str,
+        time_label
+    ]
+
+    line_heights = [int(title_size * 1.3), int(sub_size * 1.4), int(sub_size * 1.4)]
+    total_text_h = sum(line_heights)
+    max_text_w = max(
+        int(len(lines[0]) * title_size * 0.65),
+        int(len(lines[1]) * sub_size * 0.60),
+        int(len(lines[2]) * sub_size * 0.60)
+    )
+
+    pad_x = int(img_w * 0.025)
+    pad_y = int(img_h * 0.020)
+    card_w = max_text_w + (pad_x * 2)
+    card_h = total_text_h + (pad_y * 2)
+
+    if badge_style == "Full Bottom Bar":
+        box_x0 = 0
+        box_y0 = img_h - card_h - int(img_h * 0.01)
+        box_x1 = img_w
+        box_y1 = img_h
+        text_x = pad_x
+        text_y = box_y0 + pad_y
+        draw.rectangle([box_x0, box_y0, box_x1, box_y1], fill=(15, 23, 42, 200))
+    else:
+        margin = int(img_w * 0.03)
+        if position == "Bottom Left":
+            box_x0 = margin
+            box_y0 = img_h - card_h - margin
+        elif position == "Bottom Right":
+            box_x0 = img_w - card_w - margin
+            box_y0 = img_h - card_h - margin
+        else:
+            box_x0 = margin
+            box_y0 = margin
+
+        box_x1 = box_x0 + card_w
+        box_y1 = box_y0 + card_h
+        text_x = box_x0 + pad_x
+        text_y = box_y0 + pad_y
+
+        radius = max(8, int(img_w * 0.015))
+        draw.rounded_rectangle(
+            [box_x0, box_y0, box_x1, box_y1],
+            radius=radius,
+            fill=(10, 18, 35, 195),
+            outline=(56, 189, 248, 140),
+            width=max(1, int(img_w * 0.002))
+        )
+
+    curr_y = text_y
+    draw.text((text_x, curr_y), lines[0], font=title_font, fill=(255, 255, 255, 255))
+    curr_y += line_heights[0]
+
+    draw.text((text_x, curr_y), lines[1], font=sub_font, fill=(56, 189, 248, 240))
+    curr_y += line_heights[1]
+
+    draw.text((text_x, curr_y), lines[2], font=sub_font, fill=(226, 232, 240, 220))
+
+    base_rgba = image.convert("RGBA")
+    composited = Image.alpha_composite(base_rgba, overlay)
+    return composited.convert("RGB")
+
+
 # ==================================================
 # DRAGGABLE / MOVEABLE INTERACTIVE TEXT CANVAS
 # ==================================================
@@ -453,9 +544,8 @@ features = [
     "Add Date & Stamp",
     "Adjust & Rotate Photo",
     "Add GPS Location (Geo-Tag)",
-    "Batch Text on Multiple Images",
-    "Thumbnail Generator",
-    "HD Wallpaper Maker"
+    "Photo Collage, Wallpaper & Frame Story",
+    "Thumbnail Generator"
 ]
 
 option = st.sidebar.selectbox("Select a Tool", features)
@@ -488,7 +578,7 @@ if option == "Home":
         <h2>PragyanAI Studio & Analytical Suite</h2>
         <p>
             An all-in-one suite for AI background replacement, drag-and-drop text overlay,
-            photo filters, format resizing, and image comparison.
+            photo filters, GPS camera watermarking, and custom frame stories.
         </p>
         <p>
             Choose a tool from the sidebar or pass images between tools using the <b>Active Workspace</b> pipeline!
@@ -499,7 +589,7 @@ if option == "Home":
     st.subheader("Available Tools")
     feature_data = [
         ("🟣 Blend Two Images", "Blend two images together seamlessly with transparency control."),
-        ("🖼️ AI Background Changer", "Cut out people or objects and place them in front of a new scenery."),
+        ("🖼️ AI Background Changer", "Cut out people or objects and place them in front of new scenery."),
         ("⚫ Black & White Converter", "Convert colorful photos into sharp grayscale or high-contrast monochrome."),
         ("✏️ Pencil Sketch Converter", "Turn portraits and landscapes into realistic pencil sketches."),
         ("🪪 Passport Photo Maker", "Generate multiple passport-sized copies on a single print sheet."),
@@ -508,10 +598,9 @@ if option == "Home":
         ("✏️ Drag & Drop Text Editor", "Add text and emojis that you can freely drag anywhere on your image."),
         ("🔤 Add Date & Stamp", "Stamp dates and captions directly onto your images."),
         ("🎨 Adjust & Rotate Photo", "Change brightness, contrast, sharpness, saturation, and rotation."),
-        ("📍 Add GPS Location (Geo-Tag)", "Save GPS location and timestamps into the photo metadata."),
-        ("🧩 Batch Text on Multiple Images", "Add text and captions to multiple images at once."),
-        ("🖼️ Thumbnail Generator", "Quickly create clean thumbnails without distorting image proportions."),
-        ("🌄 HD Wallpaper Maker", "Create 1080p full-HD desktop wallpapers with custom titles.")
+        ("📍 Add GPS Location (Geo-Tag)", "Burn realistic GPS camera location badges & EXIF data."),
+        ("🧩 Photo Collage, Wallpaper & Frame Story", "Order photos into multi-image collages or 1080p wallpapers with title text."),
+        ("🖼️ Thumbnail Generator", "Quickly create clean thumbnails without distorting image proportions.")
     ]
 
     cols = st.columns(3)
@@ -609,7 +698,6 @@ elif option == "AI Background Changer":
                     else:
                         cutout = cutout.convert("RGBA")
 
-                    # Edge cleanup
                     r, g, b, a = cutout.split()
                     a = a.filter(ImageFilter.GaussianBlur(radius=1))
                     a = a.point(lambda p: 255 if p > 210 else (0 if p < 40 else p))
@@ -909,7 +997,7 @@ elif option == "Adjust & Rotate Photo":
 elif option == "Add GPS Location (Geo-Tag)":
     st.header("📍 Add GPS Location (Geo-Tag)")
     st.write(
-        "Inject GPS coordinates and timestamps directly into image EXIF metadata, with an optional visible badge."
+        "Embed EXIF GPS metadata and burn a **GPS Camera-style location badge** directly onto your photo."
     )
 
     image = get_primary_image("geotag_upload")
@@ -918,36 +1006,34 @@ elif option == "Add GPS Location (Geo-Tag)":
         col_l, col_d = st.columns(2)
         with col_l:
             location = st.text_input(
-                "Location Name", placeholder="e.g. Gateway of India, Mumbai"
+                "Location Name / Landmark",
+                value="Gateway of India, Mumbai, Maharashtra",
+                placeholder="e.g. Marina Beach, Chennai"
             )
-            lat = st.number_input("Latitude", -90.0, 90.0, 18.9220, format="%.5f")
-            lon = st.number_input("Longitude", -180.0, 180.0, 72.8347, format="%.5f")
+            lat = st.number_input("Latitude", -90.0, 90.0, 18.9220, format="%.5f", step=0.0001)
+            lon = st.number_input("Longitude", -180.0, 180.0, 72.8347, format="%.5f", step=0.0001)
         with col_d:
             timestamp_str = st.text_input(
-                "Date and Time", value=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "Date & Time",
+                value=datetime.now().strftime("%d %b %Y, %I:%M %p")
             )
-            burn_label = st.checkbox(
-                "Burn Visible Metadata Overlay Badge onto Image", value=True
+            badge_style = st.selectbox(
+                "Badge Design",
+                ["GPS Camera Card (Glassmorphism)", "Full Bottom Bar", "No Visible Stamp (EXIF Metadata Only)"]
             )
+            position = st.selectbox("Stamp Position", ["Bottom Left", "Bottom Right", "Top Left"])
             export_format = st.selectbox(
-                "File Format",
-                ["JPEG (Embeds EXIF GPS)", "PNG (Embeds Chunk Info)"],
+                "Output File Format",
+                ["JPEG (Embeds Binary EXIF GPS Tags)", "PNG (Embeds Metadata Chunks)"]
             )
 
-        if st.button("📍 Write Geo-Tag"):
+        if st.button("📍 Generate Geo-Tagged Photo", key="btn_apply_geotag"):
             result = image.copy()
-            if burn_label:
-                draw = ImageDraw.Draw(result)
-                badge_text = (
-                    f"📍 {location}\nLAT: {lat:.4f} | LON: {lon:.4f}\nTIME: {timestamp_str}"
+            if badge_style != "No Visible Stamp (EXIF Metadata Only)":
+                style_key = "Full Bottom Bar" if badge_style == "Full Bottom Bar" else "GPS Camera Card"
+                result = create_location_app_stamp(
+                    result, location, lat, lon, timestamp_str, style_key, position
                 )
-                badge_font = get_font(max(16, int(result.width * 0.025)))
-
-                draw.rectangle(
-                    [(10, 10), (int(result.width * 0.6), int(result.height * 0.18))],
-                    fill="rgba(0,0,0,180)",
-                )
-                draw.text((20, 20), badge_text, fill="white", font=badge_font)
 
             output = io.BytesIO()
 
@@ -957,11 +1043,11 @@ elif option == "Add GPS Location (Geo-Tag)":
                     piexif.GPSIFD.GPSLatitude: to_dms(lat),
                     piexif.GPSIFD.GPSLongitudeRef: "E" if lon >= 0 else "W",
                     piexif.GPSIFD.GPSLongitude: to_dms(lon),
-                    piexif.GPSIFD.GPSDateStamp: timestamp_str.split()[0].replace("-", ":"),
+                    piexif.GPSIFD.GPSDateStamp: datetime.now().strftime("%Y:%m:%d").encode("utf-8")
                 }
                 exif_bytes = piexif.dump({"GPS": gps_ifd})
                 result.save(output, format="JPEG", quality=95, exif=exif_bytes)
-                out_filename = "geotagged_image.jpg"
+                out_filename = "geotagged_camera_photo.jpg"
                 mime_type = "image/jpeg"
             else:
                 png_info = PngImagePlugin.PngInfo()
@@ -970,57 +1056,164 @@ elif option == "Add GPS Location (Geo-Tag)":
                 png_info.add_text("Longitude", str(lon))
                 png_info.add_text("DateTime", timestamp_str)
                 result.save(output, format="PNG", pnginfo=png_info)
-                out_filename = "geotagged_image.png"
+                out_filename = "geotagged_camera_photo.png"
                 mime_type = "image/png"
 
-            st.success("Geo-Tag applied successfully!")
-            st.image(result, caption="Geo-Tagged Image", use_container_width=True)
-            st.download_button(
-                label="⬇️ Download Geo-Tagged Image",
-                data=output.getvalue(),
-                file_name=out_filename,
-                mime=mime_type,
-                use_container_width=True
-            )
+            st.success("Geo-Tag stamp applied successfully!")
+            show_download(result, out_filename)
 
 
 # ==================================================
-# 13. BATCH TEXT ON MULTIPLE IMAGES
+# 13. PHOTO COLLAGE, WALLPAPER & FRAME STORY
 # ==================================================
 
-elif option == "Batch Text on Multiple Images":
-    st.header("🧩 Batch Text on Multiple Images")
+elif option == "Photo Collage, Wallpaper & Frame Story":
+    st.header("🧩 Photo Collage, Wallpaper & Frame Story")
     st.write(
-        "Upload multiple images and apply interactive drag-and-drop captions to each one."
+        "Upload photos, arrange their order, select a layout "
+        "(or Full HD 1080p Wallpaper mode), and position your title/text freely across the finished frame."
     )
 
     files = st.file_uploader(
-        "Upload Multiple Images",
+        "Upload Photos",
         type=["jpg", "jpeg", "png", "webp"],
         accept_multiple_files=True,
-        key="batch_upload",
-    )
-    shared_text = st.text_input(
-        "Default Caption / Emoji", placeholder="Holiday 2026 🏖️"
+        key="collage_wallpaper_upload"
     )
 
     if files:
         file_map = {f.name: f for f in files}
+        
+        st.subheader("1. Arrange Photo Order")
         selected_order = st.multiselect(
-            "Reorder Images",
+            "Select sequence (1st photo, 2nd photo, etc.):",
             options=list(file_map.keys()),
-            default=list(file_map.keys()),
+            default=list(file_map.keys())
         )
 
-        for idx, filename in enumerate(selected_order):
-            st.markdown(f"### 📷 Image {idx + 1}: `{filename}`")
-            img = load_image(file_map[filename])
-            if img:
-                draggable_text_editor(
-                    img,
-                    shared_text or f"Photo {idx+1} ✨",
-                    key=f"batch_canvas_{idx}_{filename}",
-                )
+        col_layout, col_space = st.columns(2)
+        with col_layout:
+            layout_style = st.selectbox(
+                "Canvas Output Format",
+                [
+                    "Full HD 1080p Wallpaper (1920x1080)",
+                    "Vertical Strip (Stacked)",
+                    "Horizontal Strip (Side-by-Side)",
+                    "2-Column Photo Grid"
+                ]
+            )
+        with col_space:
+            spacing = st.slider("Spacing Between Photos (px)", 0, 50, 15)
+
+        story_text = st.text_area(
+            "Headline Title / Caption (Emojis supported)",
+            value="NATURE VIBES 🌿\nAdventure 2026",
+            height=70
+        )
+
+        if selected_order and st.button("🖼️ Generate Combined Canvas / Wallpaper", key="btn_build_canvas"):
+            ordered_imgs = [load_image(file_map[name]) for name in selected_order if file_map.get(name)]
+            
+            if layout_style == "Full HD 1080p Wallpaper (1920x1080)":
+                total_w, total_h = 1920, 1080
+                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
+                num_imgs = len(ordered_imgs)
+
+                if num_imgs == 1:
+                    collage_canvas = ImageOps.fit(ordered_imgs[0], (total_w, total_h), method=Image.Resampling.LANCZOS)
+                elif num_imgs == 2:
+                    cell_w = (total_w - (spacing * 3)) // 2
+                    cell_h = total_h - (spacing * 2)
+                    for i, im in enumerate(ordered_imgs[:2]):
+                        cropped = ImageOps.fit(im, (cell_w, cell_h), method=Image.Resampling.LANCZOS)
+                        x = spacing + i * (cell_w + spacing)
+                        collage_canvas.paste(cropped, (x, spacing))
+                elif num_imgs == 3:
+                    hero_w = int(total_w * 0.6) - spacing
+                    right_w = total_w - hero_w - (spacing * 3)
+                    half_h = (total_h - (spacing * 3)) // 2
+
+                    hero_img = ImageOps.fit(ordered_imgs[0], (hero_w, total_h - (spacing * 2)), method=Image.Resampling.LANCZOS)
+                    collage_canvas.paste(hero_img, (spacing, spacing))
+
+                    top_r = ImageOps.fit(ordered_imgs[1], (right_w, half_h), method=Image.Resampling.LANCZOS)
+                    collage_canvas.paste(top_r, (hero_w + (spacing * 2), spacing))
+
+                    bot_r = ImageOps.fit(ordered_imgs[2], (right_w, half_h), method=Image.Resampling.LANCZOS)
+                    collage_canvas.paste(bot_r, (hero_w + (spacing * 2), half_h + (spacing * 2)))
+                else:
+                    cell_w = (total_w - (spacing * 3)) // 2
+                    cell_h = (total_h - (spacing * 3)) // 2
+                    for i, im in enumerate(ordered_imgs[:4]):
+                        r_idx = i // 2
+                        c_idx = i % 2
+                        cropped = ImageOps.fit(im, (cell_w, cell_h), method=Image.Resampling.LANCZOS)
+                        x = spacing + c_idx * (cell_w + spacing)
+                        y = spacing + r_idx * (cell_h + spacing)
+                        collage_canvas.paste(cropped, (x, y))
+
+            elif layout_style == "Vertical Strip (Stacked)":
+                target_w = 900
+                resized_imgs = []
+                for img in ordered_imgs:
+                    ratio = target_w / float(img.width)
+                    target_h = int(float(img.height) * float(ratio))
+                    resized_imgs.append(img.resize((target_w, target_h), Image.Resampling.LANCZOS))
+
+                total_w = target_w + (spacing * 2)
+                total_h = sum(im.height for im in resized_imgs) + (spacing * (len(resized_imgs) + 1))
+                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
+
+                curr_y = spacing
+                for im in resized_imgs:
+                    collage_canvas.paste(im, (spacing, curr_y))
+                    curr_y += im.height + spacing
+
+            elif layout_style == "Horizontal Strip (Side-by-Side)":
+                fixed_h = 600
+                horiz_resized = []
+                for img in ordered_imgs:
+                    r = fixed_h / float(img.height)
+                    w = int(float(img.width) * float(r))
+                    horiz_resized.append(img.resize((w, fixed_h), Image.Resampling.LANCZOS))
+
+                total_w = sum(im.width for im in horiz_resized) + (spacing * (len(horiz_resized) + 1))
+                total_h = fixed_h + (spacing * 2)
+                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
+
+                curr_x = spacing
+                for im in horiz_resized:
+                    collage_canvas.paste(im, (curr_x, spacing))
+                    curr_x += im.width + spacing
+
+            else:
+                cols = 2
+                grid_cell_size = (600, 450)
+                grid_imgs = [resize_crop(im, grid_cell_size) for im in ordered_imgs]
+                
+                rows = (len(grid_imgs) + cols - 1) // cols
+                total_w = (grid_cell_size[0] * cols) + (spacing * (cols + 1))
+                total_h = (grid_cell_size[1] * rows) + (spacing * (rows + 1))
+                collage_canvas = Image.new("RGB", (total_w, total_h), (8, 15, 30))
+
+                for i, im in enumerate(grid_imgs):
+                    r_idx = i // cols
+                    c_idx = i % cols
+                    x = spacing + c_idx * (grid_cell_size[0] + spacing)
+                    y = spacing + r_idx * (grid_cell_size[1] + spacing)
+                    collage_canvas.paste(im, (x, y))
+
+            st.session_state["active_collage"] = collage_canvas
+            st.success("Canvas generated! Position your text title below.")
+
+        if "active_collage" in st.session_state and st.session_state["active_collage"] is not None:
+            st.markdown("---")
+            st.subheader("2. Drag & Position Your Title Anywhere on the Frame")
+            draggable_text_editor(
+                st.session_state["active_collage"],
+                story_text or "Wallpaper Title",
+                key="collage_story_canvas"
+            )
 
 
 # ==================================================
@@ -1048,30 +1241,3 @@ elif option == "Thumbnail Generator":
             f"Generated Thumbnail Dimensions: **{thumb.width} × {thumb.height} px**"
         )
         show_download(thumb, "thumbnail.png")
-
-
-# ==================================================
-# 15. HD WALLPAPER MAKER
-# ==================================================
-
-elif option == "HD Wallpaper Maker":
-    st.header("🌄 HD Wallpaper Maker")
-    image = get_primary_image("wallpaper_upload")
-    title = st.text_input("Wallpaper Title", value="NATURE VIBES 🌿")
-
-    if image:
-        wallpaper = ImageOps.fit(
-            image, (1920, 1080), method=Image.Resampling.LANCZOS
-        )
-        draw = ImageDraw.Draw(wallpaper)
-        font = get_font(size=72)
-
-        draw.text(
-            (80, 80),
-            title,
-            fill="white",
-            font=font,
-            stroke_width=4,
-            stroke_fill="black",
-        )
-        show_download(wallpaper, "wallpaper_1080p.png")
