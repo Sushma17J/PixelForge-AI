@@ -561,7 +561,7 @@ elif option == "Background Change":
     st.header("🖼️ Background Change (Portrait & Scenery)")
     st.write(
         "Upload a photo of a **person/subject** and a **new scenery/background** photo. "
-        "The subject is layered cleanly in front of the scenery with edge smoothing and lighting harmonization."[cite: 2]
+        "The subject is layered cleanly in front of the scenery with edge smoothing and lighting harmonization."
     )
 
     col1, col2 = st.columns(2)
