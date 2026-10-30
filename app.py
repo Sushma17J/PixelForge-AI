@@ -426,7 +426,7 @@ def draggable_text_editor(image, initial_text, key="draggable_text_component"):
 
 
 # ==================================================
-# SIDEBAR NAVIGATION (LOGICAL STUDIO TERMINOLOGY)
+# SIDEBAR NAVIGATION
 # ==================================================
 
 st.sidebar.title("🖼️ PragyanAI")
@@ -441,7 +441,7 @@ if st.session_state["working_image"] is not None:
 st.sidebar.markdown("---")
 
 features = [
-"Home",
+    "Home",
     "Blend Two Images",
     "AI Background Changer",
     "Black & White Converter",
@@ -458,7 +458,7 @@ features = [
     "HD Wallpaper Maker"
 ]
 
-option = st.sidebar.selectbox("Select Feature Module", features)
+option = st.sidebar.selectbox("Select a Tool", features)
 
 
 def get_primary_image(uploader_key, label="Upload Image"):
@@ -487,31 +487,31 @@ if option == "Home":
     <div class="hero-text">
         <h2>PragyanAI Studio & Analytical Suite</h2>
         <p>
-            An integrated toolkit providing neural subject extraction, chromatic harmonization,
-            freeform client-side canvas typography, structural similarity diagnostics, and geographic metadata encoding.
+            An all-in-one suite for AI background replacement, drag-and-drop text overlay,
+            photo filters, format resizing, and image comparison.
         </p>
         <p>
-            Choose a processing module from the sidebar or stream intermediate assets across tools via the <b>Active Workspace</b> pipeline.
+            Choose a tool from the sidebar or pass images between tools using the <b>Active Workspace</b> pipeline!
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("Available Processing Modules")
+    st.subheader("Available Tools")
     feature_data = [
-        ("🟣 Alpha Channel Dual-Image Blending", "Linear interpolation and weighted alpha channel fusion across two image sources."),
-        ("🖼️ Neural Subject Segmentation & Compositing", "U2Net neural boundary extraction, edge defringing, and environment lighting harmonization."),
-        ("⚫ Monochrome & High-Contrast Desaturation", "Luminance-based grayscale conversion with dynamic range contrast mapping."),
-        ("✏️ Color Inversion Pencil Sketching", "Inverted Gaussian convolution with dodge-blend matrix math for pencil sketch simulation."),
-        ("🪪 Biometric Passport Photo Grid Matrix", "Automated aspect-ratio cropping and structured multi-tile matrix print layout generation."),
-        ("📏 Custom Dimension Pixel Downscaling", "Precision bicubic/Lanczos pixel resizing targeted to explicit dimensional constraints."),
-        ("🔍 Structural Similarity Index (SSIM) Analysis", "Luminance, contrast, and structural comparison providing true SSIM perceptual scoring."),
-        ("✏️ Freeform Drag-and-Drop Typography Canvas", "Coordinate-independent interactive client-side typography overlay with bounding badge controls."),
-        ("🔤 Interactive Chronological Watermarking", "Temporal date-stamping and moveable textual annotations rendered via HTML5 canvas."),
-        ("🎨 Photometric Tuning & Spatial Transformation", "Parametric control over brightness, contrast, color saturation, sharpness, and rotational axes."),
-        ("📍 EXIF Spatial Metadata & GPS Encoding", "Binary writing of geographical coordinates and timestamp tags directly into JPEG/PNG headers."),
-        ("🧩 Batch Canvas Sequence Typography", "Sequential multi-image ordering pipeline with uniform typography overlay application."),
-        ("🖼️ Constrained Aspect-Ratio Downsampling", "Maximum boundary-clamped thumbnail generation preserving geometric aspect ratios."),
-        ("🌄 Full HD (1080p) Hero Wallpaper Compositor", "Standardized 1920×1080 canvas cropping with styled vector headline typography.")
+        ("🟣 Blend Two Images", "Blend two images together seamlessly with transparency control."),
+        ("🖼️ AI Background Changer", "Cut out people or objects and place them in front of a new scenery."),
+        ("⚫ Black & White Converter", "Convert colorful photos into sharp grayscale or high-contrast monochrome."),
+        ("✏️ Pencil Sketch Converter", "Turn portraits and landscapes into realistic pencil sketches."),
+        ("🪪 Passport Photo Maker", "Generate multiple passport-sized copies on a single print sheet."),
+        ("📏 Custom Size Resizer", "Resize images to custom width and height dimensions."),
+        ("🔍 Image Comparison (Match %)", "Compare two photos and get an exact similarity score percentage."),
+        ("✏️ Drag & Drop Text Editor", "Add text and emojis that you can freely drag anywhere on your image."),
+        ("🔤 Add Date & Stamp", "Stamp dates and captions directly onto your images."),
+        ("🎨 Adjust & Rotate Photo", "Change brightness, contrast, sharpness, saturation, and rotation."),
+        ("📍 Add GPS Location (Geo-Tag)", "Save GPS location and timestamps into the photo metadata."),
+        ("🧩 Batch Text on Multiple Images", "Add text and captions to multiple images at once."),
+        ("🖼️ Thumbnail Generator", "Quickly create clean thumbnails without distorting image proportions."),
+        ("🌄 HD Wallpaper Maker", "Create 1080p full-HD desktop wallpapers with custom titles.")
     ]
 
     cols = st.columns(3)
@@ -526,78 +526,79 @@ if option == "Home":
 
 
 # ==================================================
-# 2. ALPHA CHANNEL DUAL-IMAGE BLENDING
+# 2. BLEND TWO IMAGES
 # ==================================================
 
-elif option == "Alpha Channel Dual-Image Blending":
-    st.header("🟣 Alpha Channel Dual-Image Blending")
-    st.write("Perform weighted alpha interpolation between two distinct graphic matrices.")
+elif option == "Blend Two Images":
+    st.header("🟣 Blend Two Images")
+    st.write("Blend two images together using an adjustable transparency alpha ratio.")
 
     col1, col2 = st.columns(2)
     with col1:
-        img1 = get_primary_image("blend_img1", "Upload Primary Image (Matrix A)")
+        img1 = get_primary_image("blend_img1", "Upload First Image")
         if img1:
-            st.image(img1, caption="Matrix A", use_container_width=True)
+            st.image(img1, caption="Image 1", use_container_width=True)
     with col2:
         file2 = st.file_uploader(
-            "Upload Secondary Image (Matrix B)", type=["jpg", "jpeg", "png", "webp"], key="blend_img2"
+            "Upload Second Image", type=["jpg", "jpeg", "png", "webp"], key="blend_img2"
         )
         img2 = load_image(file2) if file2 else None
         if img2:
-            st.image(img2, caption="Matrix B", use_container_width=True)
+            st.image(img2, caption="Image 2", use_container_width=True)
 
-    alpha = st.slider("Alpha Interpolation Weight (Matrix A → Matrix B)", 0.0, 1.0, 0.5, 0.05)
+    alpha = st.slider("Blending Weight (Image 1 → Image 2)", 0.0, 1.0, 0.5, 0.05)
 
     if img1 and img2:
         img2_matched = img2.resize(img1.size, Image.Resampling.LANCZOS)
         blended = Image.blend(img1, img2_matched, alpha)
         st.subheader("Blended Output")
-        show_download(blended, "alpha_blended_image.png")
+        show_download(blended, "blended_image.png")
 
 
 # ==================================================
-# 3. NEURAL SUBJECT SEGMENTATION & COMPOSITING
+# 3. AI BACKGROUND CHANGER
 # ==================================================
 
-elif option == "Neural Subject Segmentation & Compositing":
-    st.header("🖼️ Neural Subject Segmentation & Compositing")
+elif option == "AI Background Changer":
+    st.header("🖼️ AI Background Changer")
     st.write(
-        "Extract foreground human subjects using deep neural boundaries and layer them onto target backdrops with edge defringing and ambient color harmonization."
+        "Upload a photo of a **person/subject** and a **new scenery/background** photo. "
+        "The AI extracts the subject and places them **in front of** the new scenery cleanly."
     )
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("1. Primary Foreground Subject")
-        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Portrait/Person)")
+        st.subheader("1. Subject / Person")
+        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Person/Portrait)")
         if fg_img:
-            st.image(fg_img, caption="Foreground Source", use_container_width=True)
+            st.image(fg_img, caption="Subject (Foreground)", use_container_width=True)
     with col2:
-        st.subheader("2. Destination Environment Backdrop")
-        bg_file = st.file_uploader("Upload Environment Photo (Scenery/Backdrop)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
+        st.subheader("2. New Background Scenery")
+        bg_file = st.file_uploader("Upload Scenery Photo (Eiffel Tower/Nature)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
         bg_img = load_image(bg_file) if bg_file else None
         if bg_img:
-            st.image(bg_img, caption="Backdrop Source", use_container_width=True)
+            st.image(bg_img, caption="Scenery (Background)", use_container_width=True)
 
     if fg_img and bg_img:
         st.markdown("---")
-        st.subheader("Spatial Composition & Color Harmonization")
+        st.subheader("Composition & Scale")
 
         col_s, col_x, col_y = st.columns(3)
         with col_s:
-            scale = st.slider("Subject Scale Ratio", min_value=0.5, max_value=2.0, value=1.25, step=0.05)
+            scale = st.slider("Subject Scale", min_value=0.5, max_value=2.0, value=1.25, step=0.05)
         with col_x:
-            shift_x = st.slider("Horizontal Axis Translation (px)", min_value=-500, max_value=500, value=0, step=10)
+            shift_x = st.slider("Horizontal Position (Left ↔ Right)", min_value=-500, max_value=500, value=0, step=10)
         with col_y:
-            shift_y = st.slider("Vertical Axis Translation (px)", min_value=-500, max_value=500, value=0, step=10)
+            shift_y = st.slider("Vertical Position (Up ↕ Down)", min_value=-500, max_value=500, value=0, step=10)
 
         col_opt1, col_opt2 = st.columns(2)
         with col_opt1:
-            match_lighting = st.checkbox("Harmonize Ambient Lighting & Tone", value=True)
+            match_lighting = st.checkbox("Harmonize Lighting & Color Tone", value=True)
         with col_opt2:
-            depth_blur = st.checkbox("Apply Depth-of-Field Blur to Backdrop", value=True)
+            depth_blur = st.checkbox("Subtle Background Blur (DSLR Depth)", value=True)
 
-        if st.button("✨ Execute Neural Composite", key="exec_bg_change"):
-            with st.spinner("Executing neural segmentation and chromatic harmonization..."):
+        if st.button("✨ Apply Background Change", key="exec_bg_change"):
+            with st.spinner("Extracting subject with rembg and compositing..."):
                 try:
                     from rembg import remove
 
@@ -608,7 +609,7 @@ elif option == "Neural Subject Segmentation & Compositing":
                     else:
                         cutout = cutout.convert("RGBA")
 
-                    # Edge defringing & alpha erosion
+                    # Edge cleanup
                     r, g, b, a = cutout.split()
                     a = a.filter(ImageFilter.GaussianBlur(radius=1))
                     a = a.point(lambda p: 255 if p > 210 else (0 if p < 40 else p))
@@ -644,47 +645,47 @@ elif option == "Neural Subject Segmentation & Compositing":
                     bg_canvas.paste(cutout, (pos_x, pos_y), mask=cutout)
                     result = bg_canvas.convert("RGB")
 
-                    st.success("Composite rendered successfully!")
-                    show_download(result, "neural_composite.png")
+                    st.success("Background replaced cleanly!")
+                    show_download(result, "new_scenery_portrait.png")
 
                 except ImportError:
-                    st.error("The `rembg` library is required. Verify that `rembg` and `onnxruntime` are present in `requirements.txt`.")
+                    st.error("The `rembg` library is required. Ensure `rembg>=2.0.50` and `onnxruntime` are in `requirements.txt`.")
                 except Exception as e:
-                    st.error(f"Error during compositing execution: {e}")
+                    st.error(f"Error while processing background change: {e}")
 
 
 # ==================================================
-# 4. MONOCHROME & HIGH-CONTRAST DESATURATION
+# 4. BLACK & WHITE CONVERTER
 # ==================================================
 
-elif option == "Monochrome & High-Contrast Desaturation":
-    st.header("⚫ Monochrome & High-Contrast Desaturation")
+elif option == "Black & White Converter":
+    st.header("⚫ Black & White Converter")
     image = get_primary_image("bw_upload")
 
     if image:
         mode = st.radio(
-            "Transfer Function", ["Standard Linear Grayscale", "High-Contrast Tonal Mapping"]
+            "Conversion Type", ["Standard Grayscale", "High-Contrast Monochrome"]
         )
-        if mode == "Standard Linear Grayscale":
+        if mode == "Standard Grayscale":
             result = ImageOps.grayscale(image)
         else:
             gray = ImageOps.grayscale(image)
             enhancer = ImageEnhance.Contrast(gray)
             result = enhancer.enhance(1.8)
-        show_download(result.convert("RGB"), "monochrome_desaturated.png")
+        show_download(result.convert("RGB"), "black_and_white.png")
 
 
 # ==================================================
-# 5. COLOR INVERSION PENCIL SKETCHING
+# 5. PENCIL SKETCH CONVERTER
 # ==================================================
 
-elif option == "Color Inversion Pencil Sketching":
-    st.header("✏️ Color Inversion Pencil Sketching")
+elif option == "Pencil Sketch Converter":
+    st.header("✏️ Pencil Sketch Converter")
     image = get_primary_image("sketch_upload")
 
     if image:
         blur_radius = st.slider(
-            "Gaussian Convolution Radius",
+            "Sketch Softness / Detail",
             min_value=1,
             max_value=30,
             value=10,
@@ -704,25 +705,25 @@ elif option == "Color Inversion Pencil Sketching":
 
 
 # ==================================================
-# 6. BIOMETRIC PASSPORT PHOTO GRID MATRIX
+# 6. PASSPORT PHOTO MAKER
 # ==================================================
 
-elif option == "Biometric Passport Photo Grid Matrix":
-    st.header("🪪 Biometric Passport Photo Grid Matrix")
+elif option == "Passport Photo Maker":
+    st.header("🪪 Passport Photo Maker")
     image = get_primary_image("passport_upload")
 
     col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
     with col_cfg1:
         copies = st.number_input(
-            "Grid Tile Cardinality (Copies)", min_value=1, max_value=36, value=8
+            "Number of Copies", min_value=1, max_value=36, value=8
         )
     with col_cfg2:
         photo_w = st.number_input(
-            "Target Tile Width (px)", min_value=150, max_value=600, value=300
+            "Photo Width (px)", min_value=150, max_value=600, value=300
         )
     with col_cfg3:
         photo_h = st.number_input(
-            "Target Tile Height (px)", min_value=150, max_value=800, value=350
+            "Photo Height (px)", min_value=150, max_value=800, value=350
         )
 
     if image:
@@ -750,50 +751,50 @@ elif option == "Biometric Passport Photo Grid Matrix":
                 width=1,
             )
 
-        show_download(sheet, "passport_grid_matrix.png")
+        show_download(sheet, "passport_sheet.png")
 
 
 # ==================================================
-# 7. CUSTOM DIMENSION PIXEL DOWNSCALING
+# 7. CUSTOM SIZE RESIZER
 # ==================================================
 
-elif option == "Custom Dimension Pixel Downscaling":
-    st.header("📏 Custom Dimension Pixel Downscaling")
+elif option == "Custom Size Resizer":
+    st.header("📏 Custom Size Resizer")
     image = get_primary_image("stamp_upload")
 
     if image:
         col1, col2 = st.columns(2)
         with col1:
-            w = st.number_input("Target Horizontal Resolution (px)", min_value=20, max_value=2000, value=150)
+            w = st.number_input("Width (px)", min_value=20, max_value=2000, value=150)
         with col2:
             h = st.number_input(
-                "Target Vertical Resolution (px)", min_value=20, max_value=2000, value=200
+                "Height (px)", min_value=20, max_value=2000, value=200
             )
 
         resized = image.resize((int(w), int(h)), Image.Resampling.LANCZOS)
-        show_download(resized, "downscaled_pixel_target.png")
+        show_download(resized, "resized_photo.png")
 
 
 # ==================================================
-# 8. STRUCTURAL SIMILARITY INDEX (SSIM) ANALYSIS
+# 8. IMAGE COMPARISON (MATCH %)
 # ==================================================
 
-elif option == "Structural Similarity Index (SSIM) Analysis":
-    st.header("🔍 Structural Similarity Index (SSIM) Analysis")
-    st.write("Quantify perceptual similarity across luminance, contrast, and structure metrics.")
+elif option == "Image Comparison (Match %)":
+    st.header("🔍 Image Comparison (Match %)")
+    st.write("Compare two images using the Structural Similarity Index (SSIM).")
 
     col1, col2 = st.columns(2)
     with col1:
-        img1 = get_primary_image("sim_img1", "Upload Baseline Image (Reference)")
+        img1 = get_primary_image("sim_img1", "Upload First Image")
         if img1:
-            st.image(img1, caption="Baseline Reference", use_container_width=True)
+            st.image(img1, caption="Image 1", use_container_width=True)
     with col2:
         file2 = st.file_uploader(
-            "Upload Comparison Image (Candidate)", type=["jpg", "jpeg", "png", "webp"], key="sim_img2"
+            "Upload Second Image", type=["jpg", "jpeg", "png", "webp"], key="sim_img2"
         )
         img2 = load_image(file2) if file2 else None
         if img2:
-            st.image(img2, caption="Candidate Asset", use_container_width=True)
+            st.image(img2, caption="Image 2", use_container_width=True)
 
     if img1 and img2:
         img1_eval = img1.resize((300, 300), Image.Resampling.LANCZOS)
@@ -806,51 +807,51 @@ elif option == "Structural Similarity Index (SSIM) Analysis":
             from skimage.metrics import structural_similarity
             score = structural_similarity(arr1, arr2, data_range=255)
             similarity_pct = max(0.0, float(score) * 100.0)
-            st.metric("Perceptual SSIM Score", f"{similarity_pct:.2f}%")
+            st.metric("Similarity Score", f"{similarity_pct:.2f}%")
         except ImportError:
             mse = np.mean((arr1.astype(float) - arr2.astype(float)) ** 2)
             rmse_similarity = max(0.0, 100.0 - (np.sqrt(mse) / 255.0 * 100.0))
             st.metric(
-                "Pixel Euclidean Distance Metric", f"{rmse_similarity:.2f}%"
+                "Similarity Score (Pixel Distance Metric)", f"{rmse_similarity:.2f}%"
             )
 
 
 # ==================================================
-# 9. FREEFORM DRAG-AND-DROP TYPOGRAPHY CANVAS
+# 9. DRAG & DROP TEXT EDITOR
 # ==================================================
 
-elif option == "Freeform Drag-and-Drop Typography Canvas":
-    st.header("✏️ Freeform Drag-and-Drop Typography Canvas")
-    st.info("💡 **Interactive Canvas**: Drag and drop text across the viewport. Real-time font size, color, and semi-transparent bounding controls update without refreshing the Python server.")
+elif option == "Drag & Drop Text Editor":
+    st.header("✏️ Drag & Drop Text Editor")
+    st.info("💡 **How it works:** Type your text below, then **click and drag** it anywhere on the image canvas. You can change colors, sizes, or lock it down before downloading!")
 
     image = get_primary_image("moveable_text_upload")
     user_text = st.text_area(
-        "Typography Payload (Multiline supported)",
-        value="PragyanAI 🚀\nPrecision Creative Engine ✨",
+        "Enter Text / Caption (Emojis supported)",
+        value="PragyanAI 🚀\nAwesome Edit! ✨",
         height=80,
     )
 
     if image:
         draggable_text_editor(
-            image, user_text or "Typography payload", key="freeform_text_editor"
+            image, user_text or "Enter text ✨", key="freeform_text_editor"
         )
 
 
 # ==================================================
-# 10. INTERACTIVE CHRONOLOGICAL WATERMARKING
+# 10. ADD DATE & STAMP
 # ==================================================
 
-elif option == "Interactive Chronological Watermarking":
-    st.header("🔤 Interactive Chronological Watermarking")
+elif option == "Add Date & Stamp":
+    st.header("🔤 Add Date & Stamp")
     image = get_primary_image("date_text_upload")
 
     col_t, col_d = st.columns([2, 1])
     with col_t:
         caption = st.text_input(
-            "Annotation Header", placeholder="Archival Document Record"
+            "Caption (Emojis supported)", placeholder="Vacation Memories 🏖️"
         )
     with col_d:
-        chosen_date = st.date_input("Temporal Timestamp", value=datetime.today().date())
+        chosen_date = st.date_input("Date", value=datetime.today().date())
 
     if image:
         combined_text = (
@@ -860,26 +861,26 @@ elif option == "Interactive Chronological Watermarking":
 
 
 # ==================================================
-# 11. PHOTOMETRIC TUNING & SPATIAL TRANSFORMATION
+# 11. ADJUST & ROTATE PHOTO
 # ==================================================
 
-elif option == "Photometric Tuning & Spatial Transformation":
-    st.header("🎨 Photometric Tuning & Spatial Transformation")
+elif option == "Adjust & Rotate Photo":
+    st.header("🎨 Adjust & Rotate Photo")
     image = get_primary_image("enhance_upload")
 
     if image:
         col_ctl, col_rot = st.columns(2)
         with col_ctl:
-            brightness = st.slider("Photometric Luminance (Brightness)", 0.2, 2.5, 1.0, 0.05)
-            contrast = st.slider("Dynamic Range Contrast", 0.2, 2.5, 1.0, 0.05)
-            sharpness = st.slider("High-Frequency Edge Sharpness", 0.0, 3.0, 1.0, 0.1)
-            color_sat = st.slider("Chromatic Saturation", 0.0, 3.0, 1.0, 0.1)
+            brightness = st.slider("Brightness", 0.2, 2.5, 1.0, 0.05)
+            contrast = st.slider("Contrast", 0.2, 2.5, 1.0, 0.05)
+            sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1)
+            color_sat = st.slider("Saturation", 0.0, 3.0, 1.0, 0.1)
 
         with col_rot:
-            st.write("Spatial Geometry Adjustments")
-            rotate_angle = st.selectbox("Orthogonal Rotation Angle", [0, 90, 180, 270])
-            flip_h = st.checkbox("Reflect Along Vertical Axis (Horizontal Mirror)")
-            flip_v = st.checkbox("Reflect Along Horizontal Axis (Vertical Flip)")
+            st.write("Orientation & Flips")
+            rotate_angle = st.selectbox("Rotate Angle", [0, 90, 180, 270])
+            flip_h = st.checkbox("Flip Horizontally (Mirror)")
+            flip_v = st.checkbox("Flip Vertically")
 
         enhanced = image.copy()
         if brightness != 1.0:
@@ -898,17 +899,17 @@ elif option == "Photometric Tuning & Spatial Transformation":
         if flip_v:
             enhanced = ImageOps.flip(enhanced)
 
-        show_download(enhanced, "transformed_asset.png")
+        show_download(enhanced, "enhanced_image.png")
 
 
 # ==================================================
-# 12. EXIF SPATIAL METADATA & GPS ENCODING
+# 12. ADD GPS LOCATION (GEO-TAG)
 # ==================================================
 
-elif option == "EXIF Spatial Metadata & GPS Encoding":
-    st.header("📍 EXIF Spatial Metadata & GPS Encoding")
+elif option == "Add GPS Location (Geo-Tag)":
+    st.header("📍 Add GPS Location (Geo-Tag)")
     st.write(
-        "Inject geographic coordinates and ISO timestamps directly into binary EXIF/PNG chunks, with an optional visible telemetry badge."
+        "Inject GPS coordinates and timestamps directly into image EXIF metadata, with an optional visible badge."
     )
 
     image = get_primary_image("geotag_upload")
@@ -917,23 +918,23 @@ elif option == "EXIF Spatial Metadata & GPS Encoding":
         col_l, col_d = st.columns(2)
         with col_l:
             location = st.text_input(
-                "Geographic Location Label", placeholder="e.g. Gateway of India, Mumbai"
+                "Location Name", placeholder="e.g. Gateway of India, Mumbai"
             )
-            lat = st.number_input("Decimal Latitude (°N/S)", -90.0, 90.0, 18.9220, format="%.5f")
-            lon = st.number_input("Decimal Longitude (°E/W)", -180.0, 180.0, 72.8347, format="%.5f")
+            lat = st.number_input("Latitude", -90.0, 90.0, 18.9220, format="%.5f")
+            lon = st.number_input("Longitude", -180.0, 180.0, 72.8347, format="%.5f")
         with col_d:
             timestamp_str = st.text_input(
-                "ISO Timestamp String", value=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "Date and Time", value=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )
             burn_label = st.checkbox(
-                "Burn Visible Telemetry Badge onto Image Buffer", value=True
+                "Burn Visible Metadata Overlay Badge onto Image", value=True
             )
             export_format = st.selectbox(
-                "Container Format",
-                ["JPEG (Binary EXIF GPS IFD)", "PNG (tEXt Textual Metadata)"],
+                "File Format",
+                ["JPEG (Embeds EXIF GPS)", "PNG (Embeds Chunk Info)"],
             )
 
-        if st.button("📍 Write Spatial Metadata"):
+        if st.button("📍 Write Geo-Tag"):
             result = image.copy()
             if burn_label:
                 draw = ImageDraw.Draw(result)
@@ -960,7 +961,7 @@ elif option == "EXIF Spatial Metadata & GPS Encoding":
                 }
                 exif_bytes = piexif.dump({"GPS": gps_ifd})
                 result.save(output, format="JPEG", quality=95, exif=exif_bytes)
-                out_filename = "geotagged_spatial_image.jpg"
+                out_filename = "geotagged_image.jpg"
                 mime_type = "image/jpeg"
             else:
                 png_info = PngImagePlugin.PngInfo()
@@ -969,13 +970,13 @@ elif option == "EXIF Spatial Metadata & GPS Encoding":
                 png_info.add_text("Longitude", str(lon))
                 png_info.add_text("DateTime", timestamp_str)
                 result.save(output, format="PNG", pnginfo=png_info)
-                out_filename = "geotagged_spatial_image.png"
+                out_filename = "geotagged_image.png"
                 mime_type = "image/png"
 
-            st.success("Spatial EXIF encoded successfully!")
-            st.image(result, caption="Tagged Output", use_container_width=True)
+            st.success("Geo-Tag applied successfully!")
+            st.image(result, caption="Geo-Tagged Image", use_container_width=True)
             st.download_button(
-                label="⬇️ Download Encoded Asset",
+                label="⬇️ Download Geo-Tagged Image",
                 data=output.getvalue(),
                 file_name=out_filename,
                 mime=mime_type,
@@ -984,79 +985,79 @@ elif option == "EXIF Spatial Metadata & GPS Encoding":
 
 
 # ==================================================
-# 13. BATCH CANVAS SEQUENCE TYPOGRAPHY
+# 13. BATCH TEXT ON MULTIPLE IMAGES
 # ==================================================
 
-elif option == "Batch Canvas Sequence Typography":
-    st.header("🧩 Batch Canvas Sequence Typography")
+elif option == "Batch Text on Multiple Images":
+    st.header("🧩 Batch Text on Multiple Images")
     st.write(
-        "Upload and reorder an array of graphic assets, interactively compositing draggable typography across each sequential canvas."
+        "Upload multiple images and apply interactive drag-and-drop captions to each one."
     )
 
     files = st.file_uploader(
-        "Upload Batch Asset Array",
+        "Upload Multiple Images",
         type=["jpg", "jpeg", "png", "webp"],
         accept_multiple_files=True,
         key="batch_upload",
     )
     shared_text = st.text_input(
-        "Default Sequence Caption", placeholder="Studio Series 2026 ✨"
+        "Default Caption / Emoji", placeholder="Holiday 2026 🏖️"
     )
 
     if files:
         file_map = {f.name: f for f in files}
         selected_order = st.multiselect(
-            "Sequence Pipeline Reorder",
+            "Reorder Images",
             options=list(file_map.keys()),
             default=list(file_map.keys()),
         )
 
         for idx, filename in enumerate(selected_order):
-            st.markdown(f"### 📷 Asset [{idx + 1}]: `{filename}`")
+            st.markdown(f"### 📷 Image {idx + 1}: `{filename}`")
             img = load_image(file_map[filename])
             if img:
                 draggable_text_editor(
                     img,
-                    shared_text or f"Asset {idx+1}",
+                    shared_text or f"Photo {idx+1} ✨",
                     key=f"batch_canvas_{idx}_{filename}",
                 )
 
 
 # ==================================================
-# 14. CONSTRAINED ASPECT-RATIO DOWNSAMPLING
+# 14. THUMBNAIL GENERATOR
 # ==================================================
 
-elif option == "Constrained Aspect-Ratio Downsampling":
-    st.header("🖼️ Constrained Aspect-Ratio Downsampling")
+elif option == "Thumbnail Generator":
+    st.header("🖼️ Thumbnail Generator")
     image = get_primary_image("thumb_upload")
 
     if image:
         col1, col2 = st.columns(2)
         with col1:
             max_w = st.number_input(
-                "Bounding Box Width Ceiling (px)", min_value=50, max_value=1200, value=250
+                "Max Width (px)", min_value=50, max_value=1200, value=250
             )
         with col2:
             max_h = st.number_input(
-                "Bounding Box Height Ceiling (px)", min_value=50, max_value=1200, value=250
+                "Max Height (px)", min_value=50, max_value=1200, value=250
             )
 
         thumb = image.copy()
         thumb.thumbnail((int(max_w), int(max_h)), Image.Resampling.LANCZOS)
         st.write(
-            f"Calculated Aspect-Constrained Dimensions: **{thumb.width} × {thumb.height} px**"
+            f"Generated Thumbnail Dimensions: **{thumb.width} × {thumb.height} px**"
         )
-        show_download(thumb, "aspect_constrained_thumbnail.png")
+        show_download(thumb, "thumbnail.png")
 
 
 # ==================================================
-# 15. FULL HD (1080P) HERO WALLPAPER COMPOSITOR
+# 15. HD WALLPAPER MAKER
 # ==================================================
 
-elif option == "Full HD (1080p) Hero Wallpaper Compositor":
-    st.header("🌄 Full HD (1080p) Hero Wallpaper Compositor")
+elif option == "HD Wallpaper Maker":
+    st.header("🌄 HD Wallpaper Maker")
     image = get_primary_image("wallpaper_upload")
-    title = st.text_input("Prominent Hero Title Typography", value="NEO TOKYO 2026")
+    title = st.text_input("Wallpaper Title", value="NATURE VIBES 🌿")
 
     if image:
         wallpaper = ImageOps.fit(
@@ -1073,4 +1074,4 @@ elif option == "Full HD (1080p) Hero Wallpaper Compositor":
             stroke_width=4,
             stroke_fill="black",
         )
-        show_download(wallpaper, "hero_wallpaper_1080p.png")
+        show_download(wallpaper, "wallpaper_1080p.png")
