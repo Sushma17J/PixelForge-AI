@@ -12,8 +12,6 @@ from PIL import (
     ImageOps,
     PngImagePlugin,
 )
-import cv2
-import mediapipe as mp
 import numpy as np
 import piexif
 import streamlit as st
@@ -26,7 +24,7 @@ import streamlit.components.v1 as components
 st.set_page_config(
     page_title="PragyanAI - Pixel_Forge-AI",
     page_icon="🖼️",
-    layout="wide",
+    layout="wide"
 )
 
 # ==================================================
@@ -40,8 +38,7 @@ if "working_image" not in st.session_state:
 # CUSTOM DARK THEME CSS
 # ==================================================
 
-st.markdown(
-    """
+st.markdown("""
 <style>
 .stApp {
     background: linear-gradient(135deg, #071329, #101d39, #080f20);
@@ -122,9 +119,7 @@ div[data-testid="stMetric"] {
     margin-bottom: 20px;
 }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 
 # ==================================================
@@ -143,7 +138,7 @@ else:
             <p style="color: #d4def2; margin: 5px 0 0 0; font-size: 14px;">Studio Image Processing & Enhancement</p>
         </div>
         """,
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
 
@@ -159,9 +154,7 @@ def load_image(uploaded_file):
         img = ImageOps.exif_transpose(img)
         return img.convert("RGB")
     except Exception as e:
-        st.error(
-            f"Failed to read image. File may be corrupt or unsupported format. Error: {e}"
-        )
+        st.error(f"Failed to read image. File may be corrupt or unsupported format. Error: {e}")
         return None
 
 
@@ -180,28 +173,22 @@ def set_as_working_image(image, success_msg="Image loaded into workspace pipelin
 
 def show_download(image, filename="processed_image.png", allow_pipeline=True):
     st.image(image, caption="Processed Image", use_container_width=True)
-
+    
     col_dl, col_pipe = st.columns([1, 1])
     with col_dl:
-        mime = (
-            "image/jpeg"
-            if filename.lower().endswith((".jpg", ".jpeg"))
-            else "image/png"
-        )
+        mime = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg")) else "image/png"
         fmt = "JPEG" if mime == "image/jpeg" else "PNG"
         st.download_button(
             label="⬇️ Download Image",
             data=image_to_bytes(image, format=fmt),
             file_name=filename,
             mime=mime,
-            use_container_width=True,
+            use_container_width=True
         )
     if allow_pipeline:
         with col_pipe:
             if st.button("🔄 Push to Active Workspace", key=f"pipe_{filename}"):
-                set_as_working_image(
-                    image, "Sent to workspace! Access it across other tabs."
-                )
+                set_as_working_image(image, "Sent to workspace! You can now access it in other tabs.")
 
 
 def get_font(size=30):
@@ -231,7 +218,11 @@ def to_dms(value):
     minutes_float = (value - degrees) * 60
     minutes = int(minutes_float)
     seconds = round((minutes_float - minutes) * 60 * 10000)
-    return ((degrees, 1), (minutes, 1), (seconds, 10000))
+    return (
+        (degrees, 1),
+        (minutes, 1),
+        (seconds, 10000)
+    )
 
 
 # ==================================================
@@ -452,7 +443,7 @@ st.sidebar.markdown("---")
 features = [
     "Home",
     "Image Blending",
-    "Background Change (MediaPipe AI)",
+    "Background Change",
     "Color to Black and White",
     "Color to Sketch",
     "Passport Size Photo Frame",
@@ -464,7 +455,7 @@ features = [
     "Geo-Tag Image",
     "Multiple Images with Text",
     "Thumbnail Generator",
-    "Wallpaper with Title",
+    "Wallpaper with Title"
 ]
 
 option = st.sidebar.selectbox("Select Feature", features)
@@ -473,18 +464,12 @@ option = st.sidebar.selectbox("Select Feature", features)
 def get_primary_image(uploader_key, label="Upload Image"):
     col_up, col_info = st.columns([2, 1])
     with col_up:
-        uploaded_file = st.file_uploader(
-            label, type=["jpg", "jpeg", "png", "webp"], key=uploader_key
-        )
-
+        uploaded_file = st.file_uploader(label, type=["jpg", "jpeg", "png", "webp"], key=uploader_key)
+    
     with col_info:
         use_workspace = False
         if st.session_state["working_image"] is not None:
-            use_workspace = st.checkbox(
-                "Use Image from Workspace",
-                value=(uploaded_file is None),
-                key=f"use_ws_{uploader_key}",
-            )
+            use_workspace = st.checkbox("Use Image from Workspace", value=(uploaded_file is None), key=f"use_ws_{uploader_key}")
 
     if use_workspace and st.session_state["working_image"] is not None:
         return st.session_state["working_image"].copy()
@@ -498,91 +483,46 @@ def get_primary_image(uploader_key, label="Upload Image"):
 # ==================================================
 
 if option == "Home":
-    st.markdown(
-        """
+    st.markdown("""
     <div class="hero-text">
         <h2>Welcome to PragyanAI Image Studio</h2>
         <p>
-            An all-in-one suite for professional image manipulation, Google MediaPipe portrait cutout,
+            An all-in-one suite for professional image manipulation, intelligent background replacement,
             freeform drag-and-drop text overlay, geo-tagging, similarity analysis, and print frames.
         </p>
         <p>
             Select any tool from the sidebar or pass images between tools using the <b>Active Workspace</b> pipeline!
         </p>
     </div>
-    """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
     st.subheader("Explore Tool Suite")
     feature_data = [
-        (
-            "🟣 Image Blending",
-            "Blend two images together seamlessly with transparency control.",
-        ),
-        (
-            "🖼️ Background Change",
-            "Google MediaPipe portrait segmentation with edge feathering and color grading.",
-        ),
-        (
-            "⚫ Black & White",
-            "High-contrast grayscale and monochrome conversions.",
-        ),
-        (
-            "✏️ Sketch Effect",
-            "Turn portraits and landscapes into realistic pencil sketches.",
-        ),
-        (
-            "🪪 Passport Photo Frame",
-            "Generate standard multi-copy passport photo print sheets.",
-        ),
+        ("🟣 Image Blending", "Blend two images together seamlessly with transparency control."),
+        ("🖼️ Background Change", "Subject cutout placed cleanly in front of scenery."),
+        ("⚫ Black & White", "High-contrast grayscale and monochrome conversions."),
+        ("✏️ Sketch Effect", "Turn portraits and landscapes into realistic pencil sketches."),
+        ("🪪 Passport Photo Frame", "Generate standard multi-copy passport photo print sheets."),
         ("📏 Stamp Size Photo", "Resize images to custom pixel dimensions."),
-        (
-            "🔍 Image Similarity",
-            "Structural Similarity Index (SSIM) image comparison.",
-        ),
-        (
-            "✏️ Moveable Text",
-            "Freeform interactive drag-and-drop text and emoji overlay.",
-        ),
-        (
-            "🔤 Date & Text",
-            "Stamp moveable dates, times, and captions without position sliders.",
-        ),
-        (
-            "🎨 Enhancements & Rotate",
-            "Brightness, contrast, sharpness, saturation, and rotation.",
-        ),
-        (
-            "📍 Geo-Tag Image",
-            "Burn EXIF GPS metadata & optional overlay badges.",
-        ),
-        (
-            "🧩 Batch Image Overlay",
-            "Add draggable text and reorder batches of images.",
-        ),
-        (
-            "🖼️ Thumbnail Maker",
-            "Generate constrained aspect-ratio thumbnails.",
-        ),
-        (
-            "🌄 Wallpaper Generator",
-            "Produce 1080p full-HD desktop wallpapers with custom styling.",
-        ),
+        ("🔍 Image Similarity", "Structural Similarity Index (SSIM) image comparison."),
+        ("✏️ Moveable Text", "Freeform interactive drag-and-drop text and emoji overlay."),
+        ("🔤 Date & Text", "Stamp moveable dates, times, and captions without position sliders."),
+        ("🎨 Enhancements & Rotate", "Brightness, contrast, sharpness, saturation, and rotation."),
+        ("📍 Geo-Tag Image", "Burn EXIF GPS metadata & optional overlay badges."),
+        ("🧩 Batch Image Overlay", "Add draggable text and reorder batches of images."),
+        ("🖼️ Thumbnail Maker", "Generate constrained aspect-ratio thumbnails."),
+        ("🌄 Wallpaper Generator", "Produce 1080p full-HD desktop wallpapers with custom styling.")
     ]
 
     cols = st.columns(3)
     for i, (title, desc) in enumerate(feature_data):
         with cols[i % 3]:
-            st.markdown(
-                f"""
+            st.markdown(f"""
             <div class="feature-card">
                 <h4>{title}</h4>
                 <p>{desc}</p>
             </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            """, unsafe_allow_html=True)
 
 
 # ==================================================
@@ -599,9 +539,7 @@ elif option == "Image Blending":
         if img1:
             st.image(img1, caption="Image 1", use_container_width=True)
     with col2:
-        file2 = st.file_uploader(
-            "Upload Second Image", type=["jpg", "jpeg", "png", "webp"], key="blend_img2"
-        )
+        file2 = st.file_uploader("Upload Second Image", type=["jpg", "jpeg", "png", "webp"], key="blend_img2")
         img2 = load_image(file2) if file2 else None
         if img2:
             st.image(img2, caption="Image 2", use_container_width=True)
@@ -616,116 +554,80 @@ elif option == "Image Blending":
 
 
 # ==================================================
-# 3. BACKGROUND CHANGE (MEDIAPIPE AI + OPENCV MATTING)
+# 3. BACKGROUND CHANGE (PURE NUMPY & PIL MATTING)
 # ==================================================
 
-elif option == "Background Change (MediaPipe AI)":
-    st.header("🖼️ Background Change (MediaPipe AI + Soft Matting)")
+elif option == "Background Change":
+    st.header("🖼️ Background Change (Portrait & Scenery)")
     st.write(
-        "Upload your **Person / Subject** and the **New Scenery**. "
-        "Uses Google MediaPipe's portrait model with edge de-fringing and "
-        "lighting harmonization."
+        "Upload a photo of a **person/subject** and a **new scenery/background** photo. "
+        "The subject is layered cleanly in front of the scenery with edge smoothing and lighting harmonization."[cite: 2]
     )
 
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("1. Subject / Person")
-        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Person/Portrait)")
+        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Person/Object)")
         if fg_img:
             st.image(fg_img, caption="Subject (Foreground)", use_container_width=True)
     with col2:
         st.subheader("2. New Background Scenery")
-        bg_file = st.file_uploader(
-            "Upload Scenery Photo (e.g. Eiffel Tower, Landscape)",
-            type=["jpg", "jpeg", "png", "webp"],
-            key="bg_upload",
-        )
+        bg_file = st.file_uploader("Upload Scenery Photo (Eiffel Tower/Nature)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
         bg_img = load_image(bg_file) if bg_file else None
         if bg_img:
             st.image(bg_img, caption="Scenery (Background)", use_container_width=True)
 
     if fg_img and bg_img:
         st.markdown("---")
-        st.subheader("Composition & Blending Controls")
+        st.subheader("Composition & Scale")
 
         col_s, col_x, col_y = st.columns(3)
         with col_s:
-            scale = st.slider(
-                "Subject Scale",
-                min_value=0.7,
-                max_value=2.0,
-                value=1.30,
-                step=0.05,
-                help="Enlarge the subject so they look like a real foreground subject.",
-            )
+            scale = st.slider("Subject Scale", min_value=0.5, max_value=2.0, value=1.2, step=0.05)
         with col_x:
-            shift_x = st.slider(
-                "Move Left / Right",
-                min_value=-500,
-                max_value=500,
-                value=0,
-                step=10,
-            )
+            shift_x = st.slider("Horizontal Position (Left ↔ Right)", min_value=-500, max_value=500, value=0, step=10)
         with col_y:
-            shift_y = st.slider(
-                "Move Up / Down",
-                min_value=-400,
-                max_value=400,
-                value=0,
-                step=10,
-            )
+            shift_y = st.slider("Vertical Position (Up ↕ Down)", min_value=-500, max_value=500, value=0, step=10)
 
         col_opt1, col_opt2 = st.columns(2)
         with col_opt1:
-            match_lighting = st.checkbox(
-                "Harmonize Lighting & Color Tone",
-                value=True,
-                help="Tints the subject gently with the ambient background sky light.",
-            )
+            match_lighting = st.checkbox("Harmonize Lighting & Color Tone", value=True)
         with col_opt2:
-            depth_blur = st.checkbox(
-                "Subtle Background Blur (DSLR Depth-of-Field)",
-                value=True,
-                help="Blurs background slightly to hide harsh cut-lines.",
-            )
+            depth_blur = st.checkbox("Subtle Background Blur (DSLR Depth)", value=True)
 
         if st.button("✨ Apply Background Change", key="exec_bg_change"):
-            with st.spinner("Extracting with MediaPipe & rendering composite..."):
+            with st.spinner("Processing composite and blending edges..."):
                 try:
-                    # Convert images to OpenCV BGR arrays
-                    fg_cv = cv2.cvtColor(np.array(fg_img), cv2.COLOR_RGB2BGR)
+                    # 1. Create segmentation mask using Pillow & NumPy
+                    fg_rgba = fg_img.convert("RGBA")
+                    arr = np.array(fg_rgba).astype(float)
+                    
+                    # Contrast and saturation separation
+                    corner_sample = np.mean([arr[0, 0, :3], arr[0, -1, :3], arr[-1, 0, :3], arr[-1, -1, :3]], axis=0)
+                    dist = np.sqrt(np.sum((arr[:, :, :3] - corner_sample) ** 2, axis=2))
+                    
+                    # Smooth alpha mask
+                    alpha_mask = np.clip((dist - 30.0) / 45.0 * 255.0, 0, 255).astype(np.uint8)
+                    mask_img = Image.fromarray(alpha_mask).filter(ImageFilter.GaussianBlur(radius=2))
+                    
+                    r, g, b, _ = fg_rgba.split()
+                    fg_cutout = Image.merge("RGBA", (r, g, b, mask_img))
 
-                    # Run MediaPipe Selfie Segmentation
-                    mp_selfie_segmentation = mp.solutions.selfie_segmentation
-                    with mp_selfie_segmentation.SelfieSegmentation(model_selection=1) as segmenter:
-                        rgb_for_mp = cv2.cvtColor(fg_cv, cv2.COLOR_BGR2RGB)
-                        results = segmenter.process(rgb_for_mp)
-                        mask = results.segmentation_mask
-
-                    # Clean edges with Gaussian blur feathering
-                    mask_uint8 = (mask * 255).astype(np.uint8)
-                    mask_feathered = cv2.GaussianBlur(mask_uint8, (7, 7), 0)
-
-                    # Build RGBA foreground cutout
-                    fg_rgba_cv = cv2.cvtColor(fg_cv, cv2.COLOR_BGR2BGRA)
-                    fg_rgba_cv[:, :, 3] = mask_feathered
-                    fg_cutout = Image.fromarray(cv2.cvtColor(fg_rgba_cv, cv2.COLOR_BGRA2RGBA))
-
-                    # Background canvas
+                    # 2. Resize background to target resolution
                     target_w, target_h = bg_img.size
                     bg_canvas = bg_img.convert("RGBA")
 
                     if depth_blur:
                         bg_canvas = bg_canvas.filter(ImageFilter.GaussianBlur(radius=3))
 
-                    # Color harmonization
+                    # 3. Match ambient color
                     if match_lighting:
                         bg_thumb = bg_img.resize((1, 1), Image.Resampling.BOX).getpixel((0, 0))
                         fg_thumb = fg_img.resize((1, 1), Image.Resampling.BOX).getpixel((0, 0))
 
-                        r_fac = 1.0 + ((bg_thumb[0] / (fg_thumb[0] + 1e-4)) - 1.0) * 0.30
-                        g_fac = 1.0 + ((bg_thumb[1] / (fg_thumb[1] + 1e-4)) - 1.0) * 0.30
-                        b_fac = 1.0 + ((bg_thumb[2] / (fg_thumb[2] + 1e-4)) - 1.0) * 0.30
+                        r_fac = 1.0 + ((bg_thumb[0] / (fg_thumb[0] + 1e-4)) - 1.0) * 0.25
+                        g_fac = 1.0 + ((bg_thumb[1] / (fg_thumb[1] + 1e-4)) - 1.0) * 0.25
+                        b_fac = 1.0 + ((bg_thumb[2] / (fg_thumb[2] + 1e-4)) - 1.0) * 0.25
 
                         cr, cg, cb, ca = fg_cutout.split()
                         cr = cr.point(lambda p: min(255, int(p * r_fac)))
@@ -733,26 +635,24 @@ elif option == "Background Change (MediaPipe AI)":
                         cb = cb.point(lambda p: min(255, int(p * b_fac)))
                         fg_cutout = Image.merge("RGBA", (cr, cg, cb, ca))
 
-                    # Scale cutout
+                    # 4. Scale subject
                     new_w = max(50, int(fg_cutout.width * scale))
                     new_h = max(50, int(fg_cutout.height * scale))
                     fg_cutout = fg_cutout.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
-                    # Bottom-flush alignment
+                    # 5. Position: Centered horizontally, bottom-aligned vertically
                     pos_x = (target_w - fg_cutout.width) // 2 + shift_x
                     pos_y = (target_h - fg_cutout.height) + shift_y
 
-                    # Composite
+                    # 6. Paste cutout over background scenery
                     bg_canvas.paste(fg_cutout, (pos_x, pos_y), mask=fg_cutout)
-                    result = bg_canvas.convert("RGB")
 
+                    result = bg_canvas.convert("RGB")
                     st.success("Background replaced cleanly!")
                     show_download(result, "new_scenery_portrait.png")
 
                 except Exception as e:
-                    st.error(
-                        f"Error processing MediaPipe: {e}. Ensure `pip install mediapipe opencv-python-headless` is run."
-                    )
+                    st.error(f"Error while processing background change: {e}")
 
 
 # ==================================================
@@ -906,7 +806,6 @@ elif option == "Image Similarity":
 
         try:
             from skimage.metrics import structural_similarity
-
             score = structural_similarity(arr1, arr2, data_range=255)
             similarity_pct = max(0.0, float(score) * 100.0)
             st.metric("Similarity Score", f"{similarity_pct:.2f}%")
@@ -916,7 +815,6 @@ elif option == "Image Similarity":
             st.metric(
                 "Similarity Score (Pixel Distance Metric)", f"{rmse_similarity:.2f}%"
             )
-            st.caption("Tip: Install `scikit-image` for true structural SSIM analysis.")
 
 
 # ==================================================
@@ -1042,54 +940,54 @@ elif option == "Geo-Tag Image":
                 ["JPEG (Embeds EXIF GPS)", "PNG (Embeds Chunk Info)"],
             )
 
-    if st.button("📍 Write Geo-Tag"):
-        result = image.copy()
-        if burn_label:
-            draw = ImageDraw.Draw(result)
-            badge_text = (
-                f"📍 {location}\nLAT: {lat:.4f} | LON: {lon:.4f}\nTIME: {timestamp_str}"
+        if st.button("📍 Write Geo-Tag"):
+            result = image.copy()
+            if burn_label:
+                draw = ImageDraw.Draw(result)
+                badge_text = (
+                    f"📍 {location}\nLAT: {lat:.4f} | LON: {lon:.4f}\nTIME: {timestamp_str}"
+                )
+                badge_font = get_font(max(16, int(result.width * 0.025)))
+
+                draw.rectangle(
+                    [(10, 10), (int(result.width * 0.6), int(result.height * 0.18))],
+                    fill="rgba(0,0,0,180)",
+                )
+                draw.text((20, 20), badge_text, fill="white", font=badge_font)
+
+            output = io.BytesIO()
+
+            if "JPEG" in export_format:
+                gps_ifd = {
+                    piexif.GPSIFD.GPSLatitudeRef: "N" if lat >= 0 else "S",
+                    piexif.GPSIFD.GPSLatitude: to_dms(lat),
+                    piexif.GPSIFD.GPSLongitudeRef: "E" if lon >= 0 else "W",
+                    piexif.GPSIFD.GPSLongitude: to_dms(lon),
+                    piexif.GPSIFD.GPSDateStamp: timestamp_str.split()[0].replace("-", ":"),
+                }
+                exif_bytes = piexif.dump({"GPS": gps_ifd})
+                result.save(output, format="JPEG", quality=95, exif=exif_bytes)
+                out_filename = "geotagged_image.jpg"
+                mime_type = "image/jpeg"
+            else:
+                png_info = PngImagePlugin.PngInfo()
+                png_info.add_text("Location", location)
+                png_info.add_text("Latitude", str(lat))
+                png_info.add_text("Longitude", str(lon))
+                png_info.add_text("DateTime", timestamp_str)
+                result.save(output, format="PNG", pnginfo=png_info)
+                out_filename = "geotagged_image.png"
+                mime_type = "image/png"
+
+            st.success("Geo-Tag applied successfully!")
+            st.image(result, caption="Geo-Tagged Image", use_container_width=True)
+            st.download_button(
+                label="⬇️ Download Geo-Tagged Image",
+                data=output.getvalue(),
+                file_name=out_filename,
+                mime=mime_type,
+                use_container_width=True
             )
-            badge_font = get_font(max(16, int(result.width * 0.025)))
-
-            draw.rectangle(
-                [(10, 10), (int(result.width * 0.6), int(result.height * 0.18))],
-                fill="rgba(0,0,0,180)",
-            )
-            draw.text((20, 20), badge_text, fill="white", font=badge_font)
-
-        output = io.BytesIO()
-
-        if "JPEG" in export_format:
-            gps_ifd = {
-                piexif.GPSIFD.GPSLatitudeRef: "N" if lat >= 0 else "S",
-                piexif.GPSIFD.GPSLatitude: to_dms(lat),
-                piexif.GPSIFD.GPSLongitudeRef: "E" if lon >= 0 else "W",
-                piexif.GPSIFD.GPSLongitude: to_dms(lon),
-                piexif.GPSIFD.GPSDateStamp: timestamp_str.split()[0].replace("-", ":"),
-            }
-            exif_bytes = piexif.dump({"GPS": gps_ifd})
-            result.save(output, format="JPEG", quality=95, exif=exif_bytes)
-            out_filename = "geotagged_image.jpg"
-            mime_type = "image/jpeg"
-        else:
-            png_info = PngImagePlugin.PngInfo()
-            png_info.add_text("Location", location)
-            png_info.add_text("Latitude", str(lat))
-            png_info.add_text("Longitude", str(lon))
-            png_info.add_text("DateTime", timestamp_str)
-            result.save(output, format="PNG", pnginfo=png_info)
-            out_filename = "geotagged_image.png"
-            mime_type = "image/png"
-
-        st.success("Geo-Tag applied successfully!")
-        st.image(result, caption="Geo-Tagged Image", use_container_width=True)
-        st.download_button(
-            label="⬇️ Download Geo-Tagged Image",
-            data=output.getvalue(),
-            file_name=out_filename,
-            mime=mime_type,
-            use_container_width=True,
-        )
 
 
 # ==================================================
@@ -1099,7 +997,8 @@ elif option == "Geo-Tag Image":
 elif option == "Multiple Images with Text":
     st.header("🧩 Batch Images with Moveable Text")
     st.write(
-        "Upload multiple images and apply interactive drag-and-drop captions to each one."
+        "Upload multiple images and apply interactive drag-and-drop captions to"
+        " each one."
     )
 
     files = st.file_uploader(
@@ -1168,7 +1067,9 @@ elif option == "Wallpaper with Title":
     title = st.text_input("Wallpaper Title", value="NATURE VIBES 🌿")
 
     if image:
-        wallpaper = ImageOps.fit(image, (1920, 1080), method=Image.Resampling.LANCZOS)
+        wallpaper = ImageOps.fit(
+            image, (1920, 1080), method=Image.Resampling.LANCZOS
+        )
         draw = ImageDraw.Draw(wallpaper)
         font = get_font(size=72)
 
