@@ -560,39 +560,48 @@ elif option == "Image Blending":
 elif option == "Background Change":
     st.header("🖼️ Background Change (AI)")
     st.write(
-        "Upload a photo of a **person/subject** and a **new scenery/background** photo. "
-        "The AI extracts the subject and places them **in front of** the new scenery cleanly."
+        "Upload your **Portrait / Subject** and the **New Scenery**. "
+        "The engine will crop, position, and blend the person to fit naturally."
     )
 
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("1. Subject / Person")
-        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Person/Object)")
+        fg_img = get_primary_image("fg_upload", "Upload Subject Photo (Portrait)")
         if fg_img:
             st.image(fg_img, caption="Subject", use_container_width=True)
     with col2:
         st.subheader("2. New Background Scenery")
-        bg_file = st.file_uploader("Upload Scenery Photo (Eiffel Tower/Nature)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
+        bg_file = st.file_uploader("Upload Scenery Photo (Eiffel Tower / City / Nature)", type=["jpg", "jpeg", "png", "webp"], key="bg_upload")
         bg_img = load_image(bg_file) if bg_file else None
         if bg_img:
             st.image(bg_img, caption="Scenery", use_container_width=True)
 
     if fg_img and bg_img:
         st.markdown("---")
-        st.subheader("Adjust Positioning & Scale")
+        st.subheader("Composition & Edge Controls")
+        
         col_s, col_x, col_y = st.columns(3)
         with col_s:
-            scale = st.slider("Subject Scale", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
+            # Default scale higher (1.2 - 1.4) so portrait fills the screen
+            scale = st.slider("Subject Size", min_value=0.6, max_value=2.0, value=1.25, step=0.05)
         with col_x:
-            shift_x = st.slider("Horizontal Position (Left ↔ Right)", min_value=-500, max_value=500, value=0, step=10)
+            shift_x = st.slider("Move Left / Right", min_value=-400, max_value=400, value=0, step=10)
         with col_y:
-            shift_y = st.slider("Vertical Position (Up ↕ Down)", min_value=-500, max_value=500, value=0, step=10)
+            shift_y = st.slider("Move Up / Down", min_value=-300, max_value=300, value=0, step=10)
+
+        col_edge, col_blur = st.columns(2)
+        with col_edge:
+            edge_cleanup = st.checkbox("Clean White/Grey Halo Edges", value=True)
+        with col_blur:
+            bg_depth_blur = st.checkbox("Subtle Background Blur (Portrait Mode)", value=False)
 
         if st.button("✨ Apply Background Change", key="exec_bg_change"):
-            with st.spinner("Extracting subject with rembg and placing in front of scenery..."):
+            with st.spinner("Extracting subject and applying realistic composite..."):
                 try:
                     from rembg import remove
 
+                    # 1. Subject Cutout
                     fg_rgba = fg_img.convert("RGBA")
                     fg_cutout = remove(fg_rgba)
                     if not isinstance(fg_cutout, Image.Image):
@@ -600,29 +609,42 @@ elif option == "Background Change":
                     else:
                         fg_cutout = fg_cutout.convert("RGBA")
 
+                    # 2. Edge Defringe / Clean Halo (reduces the grey outline around hair)
+                    if edge_cleanup:
+                        # Split channels and clean low alpha edge bleeding
+                        r, g, b, a = fg_cutout.split()
+                        # Threshold mask slightly to remove semi-transparent grey halos
+                        a = a.point(lambda p: 255 if p > 200 else (0 if p < 40 else p))
+                        fg_cutout = Image.merge("RGBA", (r, g, b, a))
+
+                    # 3. Canvas Geometry - match target to 4:5 or portrait format
                     target_w, target_h = fg_img.size
                     bg_canvas = ImageOps.fit(bg_img.convert("RGBA"), (target_w, target_h), method=Image.Resampling.LANCZOS)
+                    
+                    if bg_depth_blur:
+                        # Slight blur to mimic lens focal depth
+                        bg_canvas = bg_canvas.filter(ImageFilter.GaussianBlur(radius=2))
 
-                    if scale != 1.0:
-                        new_w = max(50, int(fg_cutout.width * scale))
-                        new_h = max(50, int(fg_cutout.height * scale))
-                        fg_cutout = fg_cutout.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                    # 4. Scale Subject proportionally
+                    new_w = max(50, int(fg_cutout.width * scale))
+                    new_h = max(50, int(fg_cutout.height * scale))
+                    fg_cutout = fg_cutout.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
+                    # 5. Position: Bottom-flush so the chest/shoulders don't float
                     pos_x = (target_w - fg_cutout.width) // 2 + shift_x
-                    pos_y = (target_h - fg_cutout.height) + shift_y
+                    pos_y = (target_h - fg_cutout.height) + shift_y  # Sits right on the bottom edge
 
+                    # 6. Composite
                     bg_canvas.paste(fg_cutout, (pos_x, pos_y), mask=fg_cutout)
-
                     result = bg_canvas.convert("RGB")
-                    st.success("Background replaced successfully!")
-                    show_download(result, "new_scenery_portrait.png")
+
+                    st.success("Background replaced cleanly!")
+                    show_download(result, "realistic_portrait.png")
 
                 except ImportError:
                     st.error("The `rembg` library is required. Install it using: `pip install rembg`")
                 except Exception as e:
                     st.error(f"Error while processing: {e}")
-
-
 # ==================================================
 # 4. COLOR TO BLACK AND WHITE
 # ==================================================
